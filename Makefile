@@ -2,15 +2,18 @@
 FC = gfortran
 
 # Optimization flags
-#OPT = -O3 -fdefault-real-8 -fdefault-double-8 -fbounds-check -fbacktrace -Wall -floop-nest-optimize
-OPT = -O3 -floop-nest-optimize
+OPT = -O3 -fdefault-real-8 -fdefault-double-8
 
 ifeq ($(BUILD), parallel)
 	PAR = -fopenmp
 endif
 
+ifeq ($(DEBUGMODE), 1)
+	DEBUG = -fbounds-check -fbacktrace -Wall
+endif
+
 # Glueing stuff together
-FFLAGS = $(OPT) $(PAR)
+FFLAGS = $(OPT) $(PAR) $(DEBUG)
 
 # Source directory
 SOURCE_DIR = sources
