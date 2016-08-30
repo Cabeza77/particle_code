@@ -109,6 +109,8 @@ module io
             
             phys_dist = phys_dist * AU
             phys_mass = phys_mass * M_sun
+            
+            R_ring    = R_ring * AU / phys_dist
         
         end subroutine read_namelist
         
