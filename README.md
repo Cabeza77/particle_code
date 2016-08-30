@@ -141,3 +141,33 @@ The initial spatial distribution of the particles in the disk.
     double precision :: R_ring
 
 Size in AU of the ring for the initial particle distribution of dens_dist=2.
+
+
+
+THE OUTPUT FILES
+--------------------
+
+The Output files dust0.dat of the code are saved in the output_dir directory. The first line is a header and explains the different columns. The columns are:
+
+    # Identifier of the particle:
+    # Radial distance
+    # Theta angle
+    # Radial velcity
+    # Azimuthal velocity
+    # X-coordinate
+    # Y-coordinate
+    # X-velocity
+    # Y-velocity
+    # Particle radius
+    # Particle mass
+    # Stokes number
+    # Stopping time
+
+
+
+THE PLOTTING FILES
+--------------------
+
+    plot_particles_stokes.py fargo_datadir output_dir
+
+Plots the particle positions in the disk colorcoded with their Stokes number.
