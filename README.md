@@ -38,7 +38,7 @@ to run the code with N threads. If you don't give the number of threads, N=1 wil
 WARNINGS
 --------------------
 
-The planet has to be on a fixed circular orbit! Other interial forces that arise from a migrating planet on an eccentric orbit are not included, yet.
+The planet has to be on a fixed circular orbit! Other inertial forces that arise from a migrating planet on an eccentric orbit are not included, yet.
 
 
 
