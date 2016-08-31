@@ -7,13 +7,15 @@ i_start       = 0,                      ! Starting snapshot of dust simulation
 i_stop        = 1000,                   ! Last snapshot of dust simulation
 phys_dist     = 1.d0,                   ! Physical distance in AU of the Fargo distance unit
 phys_mass     = 1.d0,                   ! Physical mass in solar masses of the Fargo mass unit
+
+adx           = 1.4d0                   ! Adiabatic index
 alpha         = 0.d0,                   ! Turbulent alpha parameter for random walk. (alpha=0.d0 => No random walk)
 mu            = 2.3,                    ! Mean molecular weight of gas in proton masses
-aspect        = 0.03d0,                 ! Aspect ratio at fargo distance unit 1
-flaring_index = 0.35d0,                 ! Flaring index:
-                                        !   aspect(R) = aspect(1) * R**flaring_index
-                                        !        H(R) = aspect(1) * R**(flaring_index+1)
 smoothing     = 0.6d0,                  ! Smooting length in units of scale height at planet position
+
+Ea            = 5330.d0,                ! Activation energy for crystallization (Ea/kb) in units of K
+nu_vib        = 2.2d13,                 ! Vibrational frequency in s
+zeta          = 1.d-5,                  ! Initial fraction of growth centers
 
 N_dust        = 10000,                  ! Number of dust particles,
 a_min         = 1.d-4,                  ! Minimum radius of dust particles in cm
