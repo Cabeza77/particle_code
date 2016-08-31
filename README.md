@@ -15,6 +15,10 @@ To compile the code use
 If you want to compile the parallel version of the code use
 
     make BUILD=parallel
+    
+For additional debugging flags use
+
+    make DEBUGMODE=1
 
 
 
@@ -78,6 +82,11 @@ The physical distance in AU that represents one FARGO distance unit. The need fo
 The physical mass in solar masses that represents one FARGO distance unit. This is also the mass of the central star.
 
 
+    double precision :: adx
+    
+The adiabatic index of the gas.
+
+
     double precision :: alpha
     
 The alpha viscosity parameter. This is used to add a random walk to the particles depending on their Stokes number due to turbulent motion of the gas. If this value is set to zero, no random walk will be added.
@@ -88,19 +97,25 @@ The alpha viscosity parameter. This is used to add a random walk to the particle
 The mean molecular weight of the gas in proton masses.
 
 
-    double precision :: aspect
-
-The aspect ratio H/R at the location of the FARGO distance R=1. The overall aspect ratio will be aspect(R) = aspect(1) * R^flaring_index
-
-
-    double precision :: flaring_index
-
-The flaring index of the disk. The disk's pressure scale height is then calculated as H(R) = aspect * R^(flaring_index+1)
-
-
     double precision :: smoothing
 
 The smoothing length in units of pressure scale heights at the distance of the planet. This is the minimal distance a particle can have to the planet for the calculation of the gravitational potential in order to avoid division by zero.
+
+
+    double precision :: Ea
+    
+The activation energy of crystalization in units of the Boltzmann constant.
+Meaning: Ea = activation energy / Boltzmann constant
+
+
+    double precision :: nu_vib
+
+The vibrational frequency of the solid state bonds in Hz
+
+
+    double precision :: zeta
+
+The initial volume fraction of crystal.
 
 
     integer :: N_dust
@@ -162,6 +177,8 @@ The Output files dust0.dat of the code are saved in the output_dir directory. Th
     # Particle mass
     # Stokes number
     # Stopping time
+    # Temperature of the dust particle
+    # Crystallinity fraction of the dust particle
 
 
 
@@ -170,4 +187,4 @@ THE PLOTTING FILES
 
     plot_particles_stokes.py fargo_datadir output_dir
 
-Plots the particle positions in the disk colorcoded with their Stokes number.
+Plots the particle positions in the disk colorcoded with their Stokes number. Also shown are the positions of the planet and of the L4 and L5 Lagrange points.
