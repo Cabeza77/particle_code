@@ -197,7 +197,22 @@ Plotting the FARGO temperature map assuming that the mass unit is 1 M_sun and th
 
     plot_pressure.py fargo_datadir
     
-Plotting the FARGO pressure map assuming that the mass unit is 1 M_sun and the distance unit is 1 au .
+Plotting the FARGO pressure map assuming that the mass unit is 1 M_sun and the distance unit is 1 au.
+
+
+    plot_vorticity.py fargo_datadir
+    
+Plotting the vorticity assuming that the mass unit is 1 M_sun and the distance unit is 1 au.
+
+
+    plot_vortensity.py fargo_datadir
+    
+Plotting the vortensity assuming that the mass unit is 1 M_sun and the distance unit is 1 au.
+
+
+    plot_particles_radius.py fargo_datadir output_dir
+
+Plots the particle positions in the disk colorcoded with their radius. Also shown are the positions of the planet and of the L4 and L5 Lagrange points.
 
 
     plot_particles_stokes.py fargo_datadir output_dir
