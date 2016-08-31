@@ -456,8 +456,8 @@ module io
             write(*,'(1X, A, f4.1, A)') '        # smoothing length:      ', smoothing*100.d0, ' % of local pressure scale height'
             write(*,'(1X, A, e9.3e2)') '        # alpha viscosity:       ', alpha
             write(*,*)
-            write(*,'(1X, A, e9.3e2)') '        # activation energy:     ', Ea
-            write(*,'(1X, A, e9.3e2)') '        # vibrational frequency: ', nu_vib
+            write(*,'(1X, A, e9.3e2, A)') '        # activation energy:     ', Ea, ' K'
+            write(*,'(1X, A, e9.3e2, A)') '        # vibrational frequency: ', nu_vib, ' Hz'
             write(*,'(1X, A, e9.3e2)') '        # growth centers:        ', zeta
             write(*,*)
             write(*,'(1X, A, f4.1, A)') '        # one FARGO distance unit corresponds to ', phys_dist/AU, ' AU'
