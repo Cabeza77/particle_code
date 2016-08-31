@@ -148,7 +148,7 @@ The bulk density of the particles in g/cm^3.
     integer :: dens_dist
 
 The initial spatial distribution of the particles in the disk.
-0: Uniformly in R-theta space. This leads naturally to a number density distribution of n~1/R^2
+0: Uniformly in R-theta space. This leads naturally to a number density distribution of n(R) ~ 1/R
 1: Following the surface density distribution of the starting frame i_start. This can be useful, if you want to start with a frame that already developed a gap. In this case you avoid placing particles in the gap. ATTENTION: This method uses rejection sampling to create the initial particle distribution. This can be very slow.
 2: Uniformly in R-theta space in a ring centered on the planet of size R_ring.
 
