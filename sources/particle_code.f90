@@ -131,6 +131,8 @@ program particle_code
     ! Read first gas velocity frames
     call read_frame( trim(fargo_datadir)//trim(make_filename('gasvrad', i_start, 'dat')), vR_gas(1, :, :))
     call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta', i_start, 'dat')), vTheta_gas(1, :, :))
+    ! Read gas temperature
+    call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', i_start, 'dat')), T_gas(1, :, :))
     
     ! Set initial positions of dust particles
     if(dens_dist==1) then
@@ -158,20 +160,24 @@ program particle_code
     end do
 !$OMP END PARALLEL DO
     
+    ! In carteesian coordinates
     X_dust = R_dust * cos( theta_dust )
     Y_dust = R_dust * sin( theta_dust )
 
-    ! Calculate Stokes number and stopping time of particles
+    ! Initialize crystallinity fraction
+    fc_dust = 0.d0
+
+    ! Initiate the temperature, calculate Stokes number and stopping time of particles
     ! and with them the initial particle velocities
 !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i, dummy, dummy2) SCHEDULE(GUIDED, chunksize)
     do i=1, N_dust
-        dummy    = interp2d(theta_dust(i), R_dust(i), theta, R,     vR_gas(1, :, :), N_theta, N_R)
-        dummy2   = interp2d(theta_dust(i), R_dust(i), theta, R, vtheta_gas(1, :, :), N_theta, N_R)
-        dummy2   = sqrt( (vR_dust(i)-dummy)**2.d0 + (vTheta_dust(i)-dummy2)**2.d0 ) ! relative gas-dust velocity
-        dummy    = interp2d(theta_dust(i), R_dust(i), theta, R,  sigma_gas(1, :, :), N_theta, N_R)
-        dummy2 = 0.d0
-        St(i)    = stokes_number( a_dust(i), dummy, R_dust(i), dummy2 )
-        tstop(i) = St(i) * sqrt( R_dust(i)**3.d0 )
+        T_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R,      T_gas(1, :, :), N_theta, N_R)
+        dummy     = interp2d(theta_dust(i), R_dust(i), theta, R,     vR_gas(1, :, :), N_theta, N_R)
+        dummy2    = interp2d(theta_dust(i), R_dust(i), theta, R, vtheta_gas(1, :, :), N_theta, N_R)
+        dummy2    = sqrt( (vR_dust(i)-dummy)**2.d0 + (vTheta_dust(i)-dummy2)**2.d0 ) ! relative gas-dust velocity
+        dummy     = interp2d(theta_dust(i), R_dust(i), theta, R,  sigma_gas(1, :, :), N_theta, N_R)
+        St(i)     = stokes_number( a_dust(i), dummy, R_dust(i), dummy2, T_dust(i) )
+        tstop(i)  = St(i) * sqrt( R_dust(i)**3.d0 )
         
         if(St(i) .LT. 1.d0) then ! Fully coupled to gas
             vR_dust(i)     = interp2d(theta_dust(i), R_dust(i), theta, R, vR_gas(1, :, :),     N_theta, N_R)
@@ -207,9 +213,10 @@ program particle_code
     cur_time = time(i_start)
     
     ! Load second data points for interpolation
-    call read_frame( trim(fargo_datadir)//trim(make_filename('gasdens',   iframe+1, 'dat')),  sigma_gas(2, :, :))
-    call read_frame( trim(fargo_datadir)//trim(make_filename('gasvrad',   iframe+1, 'dat')),     vR_gas(2, :, :))
-    call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta', iframe+1, 'dat')), vTheta_gas(2, :, :))
+    call read_frame( trim(fargo_datadir)//trim(make_filename('gasdens',        iframe+1, 'dat')),  sigma_gas(2, :, :))
+    call read_frame( trim(fargo_datadir)//trim(make_filename('gasvrad',        iframe+1, 'dat')),     vR_gas(2, :, :))
+    call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta',      iframe+1, 'dat')), vTheta_gas(2, :, :))
+    call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', iframe+1, 'dat')),      T_gas(2, :, :))
     
     TIME_LOOP: do
     
@@ -220,6 +227,8 @@ program particle_code
                 & * ( cur_time - time(iframe) ) +     vR_gas(1, :, :)
         cur_vTheta_gas = ( vTheta_gas(2, :, :) - vTheta_gas(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
                 & * ( cur_time - time(iframe) ) + vTheta_gas(1, :, :)
+        cur_T_gas      = (      T_gas(2, :, :) -      T_gas(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
+                & * ( cur_time - time(iframe) ) +      T_gas(1, :, :)
         
         ! The current planet position in cartesion coordinates
         cur_X_planet = ( X_planet(iframe+1)-X_planet(iframe) ) / ( time(iframe+1)-time(iframe) ) &
@@ -293,8 +302,11 @@ program particle_code
             X_dust(i) = R_dust(i) * cos( theta_dust(i) )
             Y_dust(i) = R_dust(i) * sin( theta_dust(i) )
             
+            ! New dust temperature
+            T_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R, cur_T_gas, N_theta, N_R)
+            
             ! Scale height at position of the particle
-            H = aspect * R_dust(i)**(flaring_index + 1.d0)
+            H = sqrt( adx*T_dust(i)*R_dust(i)**3.d0 )
             
             ! Add turbulence as random walk
             if(alpha .GT. 0.d0) then
@@ -314,8 +326,10 @@ program particle_code
                 ! Catch for periodicity in theta
                 if(theta_dust(i) .LT. 0.d0)      theta_dust(i) = theta_dust(i) + 2.d0 * pi
                 if(theta_dust(i) .GT. 2.d0 * pi) theta_dust(i) = theta_dust(i) - 2.d0 * pi
+                ! New dust temperature
+                T_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R, cur_T_gas, N_theta, N_R)
                 ! New scale height at the position of the particle
-                H = aspect * R_dust(i)**(flaring_index + 1.d0)
+                H = sqrt( adx*T_dust(i)*R_dust(i)**3.d0 )
             end if
             
             ! If the particle left the boundaries we change the radial coordinate to
@@ -341,13 +355,8 @@ program particle_code
             
             ! Calculate particles Stokes number and stopping time
             dummy    = sqrt( (vR_dust(i)-loc_vR_gas)**2.d0 + (vTheta_dust(i)-loc_vTheta_gas)**2.d0 ) ! relative gas-dust velocity
-            St(i)    = stokes_number( a_dust(i), loc_sigma_gas, R_dust(i), dummy )
+            St(i)    = stokes_number( a_dust(i), loc_sigma_gas, R_dust(i), dummy, T_dust(i) )
             tstop(i) = St(i) * sqrt( R_dust(i)**3.d0 )
-        
-            if( number_invalid(St(i)) ) then
-                write(*,*) i, St(i), a_dust(i), loc_sigma_gas, dummy
-                stop
-            end if
             
             ! Calculate the planetary forces and update the velocities
             ! Planet-dust distance with smooting parameter
@@ -387,6 +396,10 @@ program particle_code
             ! Convert new particle position into cartesian coordinates
             X_dust(i) = R_dust(i) * cos( theta_dust(i) )
             Y_dust(i) = R_dust(i) * sin( theta_dust(i) )
+            
+            ! After all calculate the new crystallinity fraction
+            dummy = T_dust(i) * mu / R_gas * G * phys_mass / phys_dist
+            fc_dust(i) = min(1.d0, (fc_dust(i)**(1.d0/3.d0) + dt * 2.d0*zeta**(1.d0/3.d0)*nu_vib*exp(-Ea/dummy))**3.d0)
             
             ! If the particle left the boundaries we change the radial coordinate to
             ! -1.d0: Inner boundary
@@ -442,6 +455,13 @@ program particle_code
               stop
   !$OMP END CRITICAL
           end if
+          
+          if( number_invalid(T_dust(i)) .OR. St(i) .LT. 0.d0 ) then
+  !$OMP CRITICAL
+              call write_invalid_message('T_dust is invalid', T_dust(i))
+              stop
+  !$OMP END CRITICAL
+          end if
 
         end do
 !$OMP END PARALLEL DO
@@ -459,9 +479,11 @@ program particle_code
              sigma_gas(1, :, :) =  sigma_gas(2, :, :)
                 vR_gas(1, :, :) =     vR_gas(2, :, :)
             vTheta_gas(1, :, :) = vTheta_gas(2, :, :)
+                 T_gas(1, :, :) =      T_gas(2, :, :)
             call read_frame( trim(fargo_datadir)//trim(make_filename('gasdens',   iframe+1, 'dat')),  sigma_gas(2, :, :))
             call read_frame( trim(fargo_datadir)//trim(make_filename('gasvrad',   iframe+1, 'dat')),     vR_gas(2, :, :))
             call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta', iframe+1, 'dat')), vTheta_gas(2, :, :))
+            call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', iframe+1, 'dat')), T_gas(2, :, :))
             iframe = iframe + 1
         end if
         

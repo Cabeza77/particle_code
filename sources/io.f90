@@ -31,13 +31,14 @@ module io
             R_ring        = 20.d0                   ! Size in AU of the ring for dens_dist=2 
             phys_dist     = 1.d0                    ! Physical distance in AU of the Fargo distance unit
             phys_mass     = 1.d0                    ! Physical mass in solar masses of the Fargo mass unit
+            adx           = 1.4d0                   ! Adiabatic index
             alpha         = 1.d-3                   ! Turbulent alpha parameter for random walk. (alpha=0.d0 => No random walk)
             mu            = 2.3                     ! Mean molecular weight of gas in proton masses
-            aspect        = 0.03d0                  ! Aspect ratio at fargo distance unit 1
-            flaring_index = 0.35d0                  ! Flaring index:
-                                                    !   aspect(R) = aspect(1) * R**flaring_index
-                                                    !        H(R) = aspect(1) * R**(flaring_index+1)
             smoothing     = 0.6d0                   ! Smooting length in units of scale height at planet position
+            
+            Ea            = 5330.d0                 ! Activation energy for crystallization (Ea/kb) in units of K
+            nu_vib        = 2.2d13                  ! Vibrational frequency in s
+            zeta          = 1.d-5                   ! Initial fraction of growth centers
             
             ! Read the namelist
             call read_namelist()
@@ -95,7 +96,7 @@ module io
                 & rho_b, &
                 & dens_dist, R_ring, &
                 & phys_dist, phys_mass, &
-                & alpha, aspect, flaring_index, mu, &
+                & alpha, mu, adx, &
                 & smoothing
                 
             open(unit=100, file=trim(input_file), delim='apostrophe', status='old', action='read', iostat=ierror)
@@ -314,8 +315,8 @@ module io
                 stop
             end if
             
-            if(aspect .LT. 0.d0) then
-                call write_stop_message("Your aspect ratio is negative")
+            if(adx .LT. 1.d0) then
+                call write_stop_message("Your adiabatic index is < 1.d0")
                 stop
             end if
             
@@ -359,6 +360,7 @@ module io
 ! ####################
 
         subroutine write_dust_output(i)
+            use constants
             use variables
             implicit none
             integer, intent(in) :: i
@@ -372,19 +374,21 @@ module io
                 call write_stop_message("Could not write '"//trim(make_filename('dust', i, 'dat'))//"'")
                 stop
             end if
-            write(100,'(A1, 1X, A6, 12(1X, A19))') &
+            write(100,'(A1, 1X, A6, 14(1X, A19))') &
                 & '#', 'Number', &
                 & 'R', 'theta', 'v_R', 'v_theta', &
                 & 'X', 'Y', 'v_X', 'v_Y', &
                 & 'Particle radius', 'Mass', &
-                & 'Stokes number', 'Stopping time'
+                & 'Stokes number', 'Stopping time', &
+                & 'Temperature', 'Crystallinity'
             do j=1, N_dust
-                write(100, '(I8, 4f20.10, 4f20.10, 2e20.10E3, 2e20.10E3)') &
+                write(100, '(I8, 4f20.10, 4f20.10, 2e20.10E3, 2e20.10E3, 2e20.10E3)') &
                     & j, &
                     & R_dust(j), theta_dust(j), vR_dust(j), vTheta_dust(j), &
                     & x_dust(j), y_dust(j), vX_dust(j), vY_dust(j), &
                     & a_dust(j), m_dust(j), &
-                    & St(j), tstop(j)
+                    & St(j), tstop(j), &
+                    & T_dust(j)*mu/R_gas*G*phys_mass/phys_dist, fc_dust(j)
             end do
             close(100)
         end subroutine write_dust_output
@@ -448,10 +452,13 @@ module io
             end if
             write(*,'(1X, A, e9.3e2, A)') '        # particle bulk density: ', rho_b, ' g/cm3'
             write(*,*)
-            write(*,'(1X, A, f5.3)') '        # aspect ratio:          ', aspect
-            write(*,'(1X, A, f5.3)') '        # flaring index:         ', flaring_index
+            write(*,'(1X, A, f3.1)') '        # adiabatic index:       ', adx
             write(*,'(1X, A, f4.1, A)') '        # smoothing length:      ', smoothing*100.d0, ' % of local pressure scale height'
             write(*,'(1X, A, e9.3e2)') '        # alpha viscosity:       ', alpha
+            write(*,*)
+            write(*,'(1X, A, e9.3e2)') '        # activation energy:     ', Ea
+            write(*,'(1X, A, e9.3e2)') '        # vibrational frequency: ', nu_vib
+            write(*,'(1X, A, e9.3e2)') '        # growth centers:        ', zeta
             write(*,*)
             write(*,'(1X, A, f4.1, A)') '        # one FARGO distance unit corresponds to ', phys_dist/AU, ' AU'
             write(*,'(1X, A, f4.1, A)') '        # the central star has a mass of ', phys_mass/m_sun, ' M_sun'

@@ -6,10 +6,10 @@ module aerodynamics
     
     contains
     
-    double precision function stokes_number(a, sigma, R, vRel)
+    double precision function stokes_number(a, sigma, R, vRel, T)
     ! Calculates the Stokes number according Paardekooper (2007)
         use constants
-        use variables, only: phys_dist, phys_mass, rho_b, aspect, flaring_index, mu
+        use variables, only: phys_dist, phys_mass, rho_b, mu, adx
     
         implicit none
         
@@ -17,6 +17,7 @@ module aerodynamics
         double precision, intent(in) :: sigma   ! Surface density
         double precision, intent(in) :: R       ! Radial position
         double precision, intent(in) :: vRel    ! Relative velocity gas-dust
+        double precision, intent(in) :: T       ! Local gas temperature
         
         double precision :: cs            ! Dound speed
         double precision :: fd            ! Epstein drag coefficient
@@ -31,7 +32,7 @@ module aerodynamics
         double precision :: omegaK        ! Keplerian frequency
         double precision :: Re            ! Reynolds number
 
-        H      = aspect * R**(1.d0 + flaring_index)   !
+        H      = sqrt( adx*T*R**3.d0 )                !
         omegaK = 1.d0 / sqrt(R**3.d0)                 ! This is all
         vK     = omegaK * R                           ! in FARGO
                                                       ! units!

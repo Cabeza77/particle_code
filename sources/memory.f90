@@ -18,6 +18,7 @@ module memory
         allocate( sigma_gas(2, N_theta, N_R) )
         allocate( vTheta_gas(2, N_theta, N_R) )
         allocate( vR_gas(2, N_theta, N_R) )
+        allocate( T_gas(2, N_theta, N_R) )
         
         allocate( x_planet(0:N_t) )
         allocate( y_planet(0:N_t) )
@@ -40,6 +41,8 @@ module memory
         allocate( L_dust(N_dust) )
         allocate( m_dust(N_dust) )
         allocate( a_dust(N_dust) )
+        allocate( T_dust(N_dust) )
+        allocate( fc_dust(N_dust) )
         allocate( St(N_dust) )
         allocate( tstop(N_dust) )
         
@@ -48,6 +51,7 @@ module memory
         allocate( cur_sigma_gas(N_theta, N_R) )
         allocate( cur_vR_gas(N_theta, N_R) )
         allocate( cur_vTheta_gas(N_theta, N_R) )
+        allocate( cur_T_gas(N_theta, N_R) )
         
     end subroutine allocate_memory
     
@@ -63,6 +67,7 @@ module memory
         deallocate( sigma_gas )
         deallocate( vTheta_gas )
         deallocate( vR_gas )
+        deallocate( T_gas )
         
         deallocate( x_planet )
         deallocate( y_planet )
@@ -85,6 +90,8 @@ module memory
         deallocate( L_dust )
         deallocate( m_dust )
         deallocate( a_dust )
+        deallocate( T_dust )
+        deallocate( fc_dust )
         deallocate( St )
         deallocate( tstop )
         
@@ -93,6 +100,7 @@ module memory
         deallocate( cur_sigma_gas )
         deallocate( cur_vR_gas )
         deallocate( cur_vTheta_gas )
+        deallocate( cur_T_gas )
         
     end subroutine deallocate_memory
 

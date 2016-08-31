@@ -38,6 +38,17 @@ module variables
     double precision, allocatable :: vR_gas(:, :, :)
     ! Gas azimuthal velocity
     double precision, allocatable :: vTheta_gas(:, :, :)
+    ! Gas temperature
+    double precision, allocatable :: T_gas(:, :, :)
+    ! Adiabatic index
+    double precision              :: adx
+    
+    ! Activation energy for crystallization
+    double precision              :: Ea
+    ! Vbrational frequency used for crystallization
+    double precision              :: nu_vib
+    ! Initial fraction of grwoth center
+    double precision              :: zeta
     
     ! Planet position in cartesian coordinates
     double precision, allocatable :: x_planet(:)
@@ -70,6 +81,10 @@ module variables
     double precision, allocatable :: m_dust(:)
     ! Radius of dust particles
     double precision, allocatable :: a_dust(:)
+    ! Radius of dust particles
+    double precision, allocatable :: T_dust(:)
+    ! Crystallinity fraction of dust particles
+    double precision, allocatable :: fc_dust(:)
     ! Minimum and maximum mass of dust particles
     double precision              :: a_min, a_max
     ! Initial mass distribution of dust particles
@@ -92,6 +107,7 @@ module variables
     double precision, allocatable :: cur_sigma_gas(:, :)
     double precision, allocatable :: cur_vR_gas(:, :)
     double precision, allocatable :: cur_vTheta_gas(:, :)
+    double precision, allocatable :: cur_T_gas(:, :)
     double precision              :: cur_R_planet
     double precision              :: cur_theta_planet
     double precision              :: cur_X_planet
@@ -115,10 +131,6 @@ module variables
     double precision :: alpha
     ! Mean molecular weight of gas
     double precision :: mu
-    ! Aspect ratio at R=1
-    double precision :: aspect
-    ! Flaring index
-    double precision :: flaring_index
     ! Smoothing length
     double precision :: smoothing
 

@@ -5,6 +5,7 @@ module constants
     ! All units in the CGS system
     
     double precision, parameter :: AU     = 1.4960d13
+    double precision, parameter :: G      = 6.67384e-08
     double precision, parameter :: k_b    = 1.38064852d-16
     double precision, parameter :: m_p    = 1.672621898d-24
     double precision, parameter :: M_sun  = 1.98855d33
