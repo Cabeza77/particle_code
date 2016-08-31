@@ -3,9 +3,10 @@
 
 
 ##### IMPORTING MODULES ############################################################################################################
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.widgets import Slider, Button
 from random import choice
+from scipy.interpolate import interp2d
 from string import ascii_letters
 
 import astropy.constants as aconst
@@ -21,19 +22,15 @@ import os
 
 ##### CHECK FOR ARGUMENTS ##########################################################################################################
 try:
-    fargo_dir = sys.argv[1]
+    data_dir = sys.argv[1]
 except:
-    sys.exit('You have to give the FARGO data diretory as first argument!')
-try:
-    dust_dir = sys.argv[2]
-except:
-    sys.exit('You have to give the dust data diretory as second argument!')
+    sys.exit('You have to give the data diretory as first argument!')
 
 
 ##### LOAD DIMS.DAT ################################################################################################################
 # This is an output file which contains for example the number of grid points
 try:
-    dims = np.loadtxt(fargo_dir+'/dims.dat')
+    dims = np.loadtxt(data_dir+'/dims.dat')
 except:
     sys.exit('Could not load dims.dat')
 
@@ -41,7 +38,7 @@ except:
 ##### LOAD USED_RAD.DAT ############################################################################################################
 # This file contains the positions of the radial grid cell interfaces
 try:
-    used_rad = np.loadtxt(fargo_dir+'/used_rad.dat') * u.AU
+    used_rad = np.loadtxt(data_dir+'/used_rad.dat') * u.AU
 except:
     sys.exit('Could not load used_rad.dat!')
 
@@ -57,7 +54,7 @@ theta_cen = np.linspace( 0., 2.*const.pi, N_theta )   # Theta grid
 ##### LOAD PLANET0.DAT #############################################################################################################
 # The planet data file
 try:
-    planet0 = np.loadtxt(fargo_dir+'/planet0.dat')
+    planet0 = np.loadtxt(data_dir+'/planet0.dat')
 except:
     sys.exit('Could not load planet0.dat!')
 dummy_i = -1
@@ -71,89 +68,89 @@ planet_y = planet0[:,2] * u.AU
 # Trannsform to polar coordinates
 planet_R     = np.sqrt( planet_x**2 + planet_y**2 )
 planet_theta = np.arctan2( planet_y, planet_x )
-        
-        
-##### LOAD DUST PARTICLES ##########################################################################################################
-# Boolean array of time steps where there is dust
-dust_exists = np.zeros( N_t+1, dtype=bool)
-for i in range(N_t+1):
-    if(os.path.isfile(dust_dir+'/dust'+repr(i)+'.dat')):
-        dust_exists[i] = True
+
+
+##### LOAD DENSITIES ###############################################################################################################
+# Load the temperature and density
+mu = 2.3 * u.g / u.mole
+Tunit = mu / aconst.R * aconst.G * aconst.M_sun / u.AU
+Pconv = aconst.R / mu
 i_image = 0
-# Load particle positions
-if(np.any(dust_exists)):
-    # Number of dust particles
-    N_d = (np.loadtxt(dust_dir+'/dust'+repr(np.where(dust_exists)[0][0])+'.dat', comments='#')).shape[0]
-    # Dust array
-    dust = np.zeros( (N_d, 3) )
-    dust[:, 2] = 1.e-100
-if(dust_exists[i_image]):
-    dummy = np.loadtxt(dust_dir+'/dust'+repr(i_image)+'.dat', comments='#')
-    for j in range(N_d):
-        dust[j, 0] = dummy[j,  1] # Radial position
-        dust[j, 1] = dummy[j,  2] # Azimuthal position
-        dust[j, 2] = dummy[j, 11] # Stokes number
-    dust[ dust[:, 0] < R_cen[1].to(u.AU).value, 0 ] = 1.e6
+T = np.zeros( (N_R, N_theta) ) * Tunit  # Initialize temperature array
+try:
+    T[:, :] = np.fromfile(data_dir+'/gasTemperature'+repr(i_image)+'.dat').reshape(N_R, N_theta) * Tunit
+except:
+    print 'Could not load gasTemperature'+repr(i_image)+'.dat'
+sigma = np.zeros( (N_R, N_theta) ) * aconst.M_sun / u.AU**2 # Initialize density array
+try:
+    sigma[:, :] = np.fromfile(data_dir+'/gasdens'+repr(i_image)+'.dat').reshape(N_R, N_theta) * aconst.M_sun / u.AU**2
+except:
+    print 'Could not load gasdens'+repr(i_image)+'.dat'
+# Calculate pressure
+P = sigma * T * Pconv
+
+# Function to interpolate data
+def intpol(theta, r, data):
+    f = interp2d(theta_cen, R_cen, data, kind='linear')
+    return f(theta, r)
+    
 
 ##### PLOTTING #####################################################################################################################
-# Create colormap
-St_range = 0.1
-color_dict = {'red':   ((0.00,          0.00,         0.00         ),
-                        (0.50-St_range, 0.00,         0.00         ),
-                        (0.50,          1.00,         1.00         ),
-                        (0.50+St_range, 1.00,         1.00         ),
-                        (1.00,          0.33,         0.33         )),
-              'green': ((0.00,          0.00,         0.00         ),
-                        (0.50-St_range, 0.00,         0.00         ),
-                        (0.50,          0.75,         0.75         ),
-                        (0.50+St_range, 0.00,         0.00         ),
-                        (1.00,          0.00,         0.00         )),
-              'blue':  ((0.00,          1.00,         1.00         ),
-                        (0.50-St_range, 0.33,         0.33         ),
-                        (0.50,          0.00,         0.00         ),
-                        (0.50+St_range, 0.00,         0.00         ),
-                        (1.00,          0.00,         0.00         )),
+# Create amber-teal colormap
+color_dict = {'red':   ((0.00, 0.10, 0.10),
+                        (0.33, 0.10, 0.10),
+                        (0.67, 1.00, 1.00),
+                        (1.00, 1.00, 1.00)),
+              'green': ((0.00, 0.10, 0.10),
+                        (0.33, 0.10, 0.10),
+                        (0.67, 0.50, 0.50),
+                        (1.00, 1.00, 1.00)),
+              'blue':  ((0.00, 0.10, 0.10),
+                        (0.33, 0.50, 0.50),
+                        (0.67, 0.10, 0.10),
+                        (1.00, 1.00, 1.00))
              }
-cmap_stokes = LinearSegmentedColormap('Stokes number', color_dict)
+amber_teal = LinearSegmentedColormap('OrangeTeal1', color_dict)
+amber_teal.set_under('#191919')
+amber_teal.set_over('#FFFFFF')
+colormap = 'RdPu'
 
-# Particle display properties
-particle_size  = 3.
-particle_alpha = 1.
+# Constrain the colorbar
+P_min  = np.min( P[P>0.].cgs.value )                                                      # Minimum (non-empty) value of sigma
+P_max  = np.max( P.cgs.value )                                                            # Maximum value of sigma
+#P_min  = 10**(np.ceil( np.log10( np.max( P.cgs.value ) ) ) - 4.0 )
+levels     = np.linspace( np.floor(np.log10(P_min)), np.ceil(np.log10(P_max)), 100 )      # Levels of colorbar
+cbar_ticks = np.arange( np.floor(np.log10(P_min)), np.ceil(np.log10(P_max))+0.1, 0.5 )    # Ticks of colorbar
 
 # Create plot
 fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))           # Use polar coordinate system
 plt.subplots_adjust(bottom=0.25)                                      # Create space at the bottom for the slider
 
-if(np.any(dust_exists)):
-    scatter = ax.scatter(dust[:,1], dust[:,0], c=np.log10(dust[:,2]), s=particle_size, cmap=cmap_stokes, linewidths=0., alpha=particle_alpha, edgecolor='')
-    St_max = np.ceil( np.log10( np.max( dust[:, 2] ) ) )
-    St_min = St_max - 6.
-    St_min = -2
-    St_max = 2
-    scatter.set_clim( [St_min, St_max] )
-    cbar_ticks = np.arange( St_min, St_max+0.1, 1. )
-    cbar = fig.colorbar(scatter)                                             # Show colorbar
-    cbar.ax.set_ylabel('log Stokes Number')
-    cbar.set_ticks(cbar_ticks)
-    cbar.solids.set_edgecolor("face")
-
-planet, = ax.plot(planet_theta[i_image], planet_R[i_image].to(u.AU), color='cyan', marker='o', markersize=8, markeredgecolor='black') # Star at planet position
-L4, = ax.plot(planet_theta[i_image]+const.pi/3.*u.rad, planet_R[i_image].to(u.AU), color='#FF33FF', marker='o', markersize=8, markeredgecolor='black')
-L5, = ax.plot(planet_theta[i_image]-const.pi/3.*u.rad, planet_R[i_image].to(u.AU), color='#FF33FF', marker='o', markersize=8, markeredgecolor='black')
+plot = ax.contourf(theta_cen, R_cen.to(u.AU), np.log10(P[ :, :].cgs.value), cmap=colormap, levels=levels, extend='both' )       # Filled contour plot
+collections_list = plot.collections[:]                                                                                            # Collect the collections....lol
+planet, = ax.plot(planet_theta[i_image], planet_R[i_image].to(u.AU), color='cyan', marker='o', markersize=8, markeredgecolor='black') # Cross at planet position
 
 ax.set_rmin(-R_cen[0].to(u.AU).value)                                 # Creating inner hole. Otherwise R=R_min would be in the center
 ax.set_rmax(R_cen[-1].to(u.AU).value)                                 # Needed somehow to define outer limit.
 
 ax.tick_params(axis='x', labelbottom='off')                           # Turns off the theta axis labelling
-ax.tick_params(axis='y', colors='black', size=16)                     # Change radial labelling to white for better visibility
+ax.tick_params(axis='y', colors='black')                              # Change radial labelling to white for better visibility
 
-
-plt.grid(b=True)                                                      # Disable grid. Looks ugla with grid
+cbar = fig.colorbar(plot)                                             # Show colorbar
+cbar.ax.set_ylabel(r'log p  [ g/s$^2$ ]')
+cbar.set_ticks(cbar_ticks)
+plt.grid(b=True)
 
 # Create slider for the time
 ax_time     = plt.axes([0.25, 0.1, 0.5, 0.03], axisbg='lightgoldenrodyellow')
 slider_time = Slider(ax_time, 'timestep', 0.0, N_t, valinit=0,valfmt='%i')
 ax._widgets = [slider_time] # Avoids garbage collection
+
+def format_coord(theta, r):
+    value = intpol(theta, r, P[ :, :].cgs)
+    return r'theta=%1.4f rad, R=%1.4f AU, p=%1.4f g/s2' % (theta, r, value)
+
+ax.format_coord = format_coord
 
 # Create movie button
 ax_button    = plt.axes([0.25, 0.04, 0.17, 0.04])
@@ -167,24 +164,33 @@ plt.show()                  # Show plot
 def update(val):
     i = int(np.floor(slider_time.val))  # Slider position
     
-    if(dust_exists[i]):
-        dummy = np.loadtxt(dust_dir+'/dust'+repr(i)+'.dat', comments='#')
-        for j in range(N_d):
-            dust[j, 0] = dummy[j,  1] # Radial position
-            dust[j, 1] = dummy[j,  2] # Azimuthal position
-            dust[j, 2] = dummy[j, 11] # Stokes number
-        dust[ dust[:, 0] < R_cen[1].to(u.AU).value, 0 ] = 1.e6
-    else:
-        dust[:, 0] = 1.e6
-            
-    scatter.set_offsets( dust[:, 1::-1] )
-    scatter.set_array( np.log10(dust[:,2]) )
-    scatter.set_clim( [St_min, St_max] )
+    try:
+        T[:, :] = np.fromfile(data_dir+'/gasTemperature'+repr(i)+'.dat').reshape(N_R, N_theta) * Tunit
+    except:
+        print 'Could not load gasTemperature'+repr(i)+'.dat'
+    try:
+        sigma[:, :] = np.fromfile(data_dir+'/gasdens'+repr(i_image)+'.dat').reshape(N_R, N_theta) * aconst.M_sun / u.AU**2
+    except:
+        print 'Could not load gasdens'+repr(i_image)+'.dat'
+    # Calculate pressure
+    P = sigma * T * Pconv
+    
+    # Remove old collections and update contour plots
+    for row in collections_list:
+        ax.collections.remove(row)
+        collections_list.remove(row)
+    dummy = ax.contourf(theta_cen, R_cen.to(u.AU), np.log10(P[ :, :].cgs.value), cmap=colormap, levels=levels, extend='both' )
+    for row in dummy.collections:
+        collections_list.append(row)
+    
+    def format_coord_i(theta, r):
+        value = intpol(theta, r, P[ :, :].cgs)
+        return r'theta=%1.4f rad, R=%1.4f AU, P=%1.4f g/s2' % (theta, r, value)
+    
+    ax.format_coord = format_coord_i
     
     # Update planet location    
     planet.set_data( (planet_theta[i], planet_R[i].to(u.AU)) )
-    L4.set_data( (planet_theta[i]+const.pi/3.*u.rad, planet_R[i].to(u.AU)) )
-    L5.set_data( (planet_theta[i]-const.pi/3.*u.rad, planet_R[i].to(u.AU)) )
     
     # Rescale axes. Don't know why this has to be done again.
     ax.set_rmin(-R_cen[0].to(u.AU).value)
@@ -200,37 +206,31 @@ def create_movie(event):
     # Get current time step
     i_start = int(np.floor(slider_time.val))
     for j, i in enumerate(np.arange(i_start, N_t+1)):
+        try:
+            T[:, :] = np.fromfile(data_dir+'/gasTemperature'+repr(i)+'.dat').reshape(N_R, N_theta) * Tunit
+        except:
+            print 'Could not load gasTemperature'+repr(i)+'.dat'
+        try:
+            sigma[:, :] = np.fromfile(data_dir+'/gasdens'+repr(i_image)+'.dat').reshape(N_R, N_theta) * aconst.M_sun / u.AU**2
+        except:
+            print 'Could not load gasdens'+repr(i_image)+'.dat'
+        # Calculate pressure
+        P = sigma * T * Pconv
         movie_fig, movie_ax = plt.subplots(subplot_kw=dict(projection='polar'))
-        
-        if(dust_exists[i]):
-            dummy = np.loadtxt(dust_dir+'/dust'+repr(i)+'.dat', comments='#')
-            for k in range(N_d):
-                dust[k, 0] = dummy[k,  1] # Radial position
-                dust[k, 1] = dummy[k,  2] # Azimuthal position
-                dust[k, 2] = dummy[k, 11] # Stokes number
-            dust[ dust[:, 0] < R_cen[1].to(u.AU).value, 0 ] = 1.e6
-        else:
-            dust[:, 0] = 1.e6
-            
-        movie_scatter = movie_ax.scatter(dust[:,1], dust[:,0], c=np.log10(dust[:,2]), s=particle_size, cmap=cmap_stokes, linewidths=0., alpha=particle_alpha, edgecolor='')
-        movie_scatter.set_clim( [St_min, St_max] )
-        movie_cbar_ticks = np.arange( St_min, St_max+0.1, 1. )
-        movie_cbar = movie_fig.colorbar(movie_scatter)                                             # Show colorbar
-        movie_cbar.ax.set_ylabel('log Stokes Number')
-        movie_cbar.set_ticks(movie_cbar_ticks)
-        movie_cbar.solids.set_edgecolor("face")
-            
+        movie_plot = movie_ax.contourf(theta_cen, R_cen.to(u.AU), np.log10(P[:, :].cgs.value), cmap=colormap, levels=levels, extend='both' )
         movie_planet, = movie_ax.plot(planet_theta[i], planet_R[i].to(u.AU), color='cyan', marker='o', markersize=8, markeredgecolor='black')
         movie_ax.set_rmin(-R_cen[0].to(u.AU).value)
         movie_ax.set_rmax(R_cen[-1].to(u.AU).value)
         movie_ax.tick_params(axis='x', labelbottom='off')
         movie_ax.tick_params(axis='y', colors='black')
+        movie_cbar = movie_fig.colorbar(movie_plot)
+        movie_cbar.ax.set_ylabel(r'log p  [ g/s$^2$ ]')
+        movie_cbar.set_ticks(cbar_ticks)
         plt.grid(b=True)
         img_name = 'movie_plot_%05i%s'%(i, img_format)
         plt.savefig(dir_name+'/'+img_name)
         print 'Saving image: '+dir_name+'/'+img_name
         plt.close(movie_fig)
-    
     # Create movie
     movie_name = 'movie.mp4'
     dummy_name = movie_name

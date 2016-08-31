@@ -92,29 +92,12 @@ if(dust_exists[i_image]):
     for j in range(N_d):
         dust[j, 0] = dummy[j,  1] # Radial position
         dust[j, 1] = dummy[j,  2] # Azimuthal position
-        dust[j, 2] = dummy[j, 11] # Stokes number
+        dust[j, 2] = dummy[j, 14] # Crystallinity fraction
     dust[ dust[:, 0] < R_cen[1].to(u.AU).value, 0 ] = 1.e6
 
 ##### PLOTTING #####################################################################################################################
 # Create colormap
-St_range = 0.1
-color_dict = {'red':   ((0.00,          0.00,         0.00         ),
-                        (0.50-St_range, 0.00,         0.00         ),
-                        (0.50,          1.00,         1.00         ),
-                        (0.50+St_range, 1.00,         1.00         ),
-                        (1.00,          0.33,         0.33         )),
-              'green': ((0.00,          0.00,         0.00         ),
-                        (0.50-St_range, 0.00,         0.00         ),
-                        (0.50,          0.75,         0.75         ),
-                        (0.50+St_range, 0.00,         0.00         ),
-                        (1.00,          0.00,         0.00         )),
-              'blue':  ((0.00,          1.00,         1.00         ),
-                        (0.50-St_range, 0.33,         0.33         ),
-                        (0.50,          0.00,         0.00         ),
-                        (0.50+St_range, 0.00,         0.00         ),
-                        (1.00,          0.00,         0.00         )),
-             }
-cmap_stokes = LinearSegmentedColormap('Stokes number', color_dict)
+cmap_cryst = 'jet'
 
 # Particle display properties
 particle_size  = 3.
@@ -125,15 +108,11 @@ fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))           # Use pola
 plt.subplots_adjust(bottom=0.25)                                      # Create space at the bottom for the slider
 
 if(np.any(dust_exists)):
-    scatter = ax.scatter(dust[:,1], dust[:,0], c=np.log10(dust[:,2]), s=particle_size, cmap=cmap_stokes, linewidths=0., alpha=particle_alpha, edgecolor='')
-    St_max = np.ceil( np.log10( np.max( dust[:, 2] ) ) )
-    St_min = St_max - 6.
-    St_min = -2
-    St_max = 2
-    scatter.set_clim( [St_min, St_max] )
-    cbar_ticks = np.arange( St_min, St_max+0.1, 1. )
+    scatter = ax.scatter(dust[:,1], dust[:,0], c=dust[:,2], s=particle_size, cmap=cmap_cryst, linewidths=0., alpha=particle_alpha, edgecolor='')
+    scatter.set_clim( [0.0, 1.0] )
+    cbar_ticks = np.arange( 0.0, 1.1, 0.2 )
     cbar = fig.colorbar(scatter)                                             # Show colorbar
-    cbar.ax.set_ylabel('log Stokes Number')
+    cbar.ax.set_ylabel('Crystallinity fraction')
     cbar.set_ticks(cbar_ticks)
     cbar.solids.set_edgecolor("face")
 
@@ -172,14 +151,14 @@ def update(val):
         for j in range(N_d):
             dust[j, 0] = dummy[j,  1] # Radial position
             dust[j, 1] = dummy[j,  2] # Azimuthal position
-            dust[j, 2] = dummy[j, 11] # Stokes number
+            dust[j, 2] = dummy[j, 14] # Crystallinity fraction
         dust[ dust[:, 0] < R_cen[1].to(u.AU).value, 0 ] = 1.e6
     else:
         dust[:, 0] = 1.e6
             
     scatter.set_offsets( dust[:, 1::-1] )
-    scatter.set_array( np.log10(dust[:,2]) )
-    scatter.set_clim( [St_min, St_max] )
+    scatter.set_array( dust[:,2] )
+    scatter.set_clim( [0.0, 1.0] )
     
     # Update planet location    
     planet.set_data( (planet_theta[i], planet_R[i].to(u.AU)) )
@@ -207,16 +186,16 @@ def create_movie(event):
             for k in range(N_d):
                 dust[k, 0] = dummy[k,  1] # Radial position
                 dust[k, 1] = dummy[k,  2] # Azimuthal position
-                dust[k, 2] = dummy[k, 11] # Stokes number
+                dust[k, 2] = dummy[k, 14] # Crystallinity fraction
             dust[ dust[:, 0] < R_cen[1].to(u.AU).value, 0 ] = 1.e6
         else:
             dust[:, 0] = 1.e6
             
-        movie_scatter = movie_ax.scatter(dust[:,1], dust[:,0], c=np.log10(dust[:,2]), s=particle_size, cmap=cmap_stokes, linewidths=0., alpha=particle_alpha, edgecolor='')
-        movie_scatter.set_clim( [St_min, St_max] )
-        movie_cbar_ticks = np.arange( St_min, St_max+0.1, 1. )
+        movie_scatter = movie_ax.scatter(dust[:,1], dust[:,0], c=dust[:,2], s=particle_size, cmap=cmap_cryst, linewidths=0., alpha=particle_alpha, edgecolor='')
+        movie_scatter.set_clim( [0.0, 1.0] )
+        movie_cbar_ticks = np.arange( 0.0, 1.1, 0.2 )
         movie_cbar = movie_fig.colorbar(movie_scatter)                                             # Show colorbar
-        movie_cbar.ax.set_ylabel('log Stokes Number')
+        movie_cbar.ax.set_ylabel('Crystallinity fraction')
         movie_cbar.set_ticks(movie_cbar_ticks)
         movie_cbar.solids.set_edgecolor("face")
             
