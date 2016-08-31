@@ -97,7 +97,8 @@ module io
                 & dens_dist, R_ring, &
                 & phys_dist, phys_mass, &
                 & alpha, mu, adx, &
-                & smoothing
+                & smoothing, &
+                & Ea, nu_vib, zeta
                 
             open(unit=100, file=trim(input_file), delim='apostrophe', status='old', action='read', iostat=ierror)
             if(ierror==0) then
