@@ -52,6 +52,7 @@ N_R       = int( dims[6] )                            # Number of radial gridpoi
 N_theta   = int( dims[7] )                            # Number of angular grid points
 R_cen     = 0.5 * (used_rad[:-1] + used_rad[1:] )     # Calculate radial cell centers
 theta_cen = np.linspace( 0., 2.*const.pi, N_theta )   # Theta grid
+N_t = 500
 
 
 ##### LOAD PLANET0.DAT #############################################################################################################
@@ -225,7 +226,7 @@ def create_movie(event):
         else:
             dust[:, 0] = 1.e6
             
-        movie_scatter = movie_ax.scatter(dust[:,1], dust[:,0], c=np.log10(dust[:,2]), s=particle_size, cmap=cmap_stokes, linewidths=0., alpha=particle_alpha, edgecolor='')
+        movie_scatter = movie_ax.scatter(dust[:,1], dust[:,0], c=np.log10(dust[:,2]), s=particle_size, cmap=colormap, linewidths=0., alpha=particle_alpha, edgecolor='')
         movie_scatter.set_clim( [St_min, St_max] )
         movie_cbar_ticks = np.arange( St_min, St_max+0.1, 1. )
         movie_cbar = movie_fig.colorbar(movie_scatter)                                             # Show colorbar
