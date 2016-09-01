@@ -114,7 +114,20 @@ color_dict = {'red':   ((0.00,          0.00,         0.00         ),
                         (0.50+St_range, 0.00,         0.00         ),
                         (1.00,          0.00,         0.00         )),
              }
-colormap = 'jet'
+color_dict = {'red':   ((0.00,          0.00,         0.00         ),
+                        (0.50,          0.67,         0.67         ),
+                        (0.75,          1.00,         1.00         ),
+                        (1.00,          0.00,         0.00         )),
+              'green': ((0.00,          0.00,         0.00         ),
+                        (0.50,          0.00,         0.00         ),
+                        (1.00,          1.00,         1.00         )),
+              'blue':  ((0.00,          0.00,         0.00         ),
+                        (0.25,          1.00,         1.00         ), 
+                        (0.50,          0.67,         0.67         ),
+                        (1.00,          0.00,         0.00         )),
+             }
+colormap = LinearSegmentedColormap('Stokes number', color_dict)
+#colormap = 'brg'
 
 # Particle display properties
 particle_size  = 3.
@@ -138,8 +151,8 @@ if(np.any(dust_exists)):
     cbar.solids.set_edgecolor("face")
 
 planet, = ax.plot(planet_theta[i_image], planet_R[i_image].to(u.AU), color='cyan', marker='o', markersize=8, markeredgecolor='black') # Star at planet position
-L4, = ax.plot(planet_theta[i_image]+const.pi/3.*u.rad, planet_R[i_image].to(u.AU), color='#FF33FF', marker='o', markersize=8, markeredgecolor='black')
-L5, = ax.plot(planet_theta[i_image]-const.pi/3.*u.rad, planet_R[i_image].to(u.AU), color='#FF33FF', marker='o', markersize=8, markeredgecolor='black')
+L4, = ax.plot(planet_theta[i_image]+const.pi/3.*u.rad, planet_R[i_image].to(u.AU), color='red', marker='o', markersize=6, markeredgecolor='black')
+L5, = ax.plot(planet_theta[i_image]-const.pi/3.*u.rad, planet_R[i_image].to(u.AU), color='red', marker='o', markersize=6, markeredgecolor='black')
 
 ax.set_rmin(-R_cen[0].to(u.AU).value)                                 # Creating inner hole. Otherwise R=R_min would be in the center
 ax.set_rmax(R_cen[-1].to(u.AU).value)                                 # Needed somehow to define outer limit.
