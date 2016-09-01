@@ -165,6 +165,13 @@ The initial particle size distribution.
 The monomer size in cm. When do_fragmentation=1 this is the minimum size a particle can have.
 
 
+    integer :: do_randomwalk
+
+Whether the particles should do a random walk due to turbulence.
+0: No.
+1: Yes.
+
+
     double precision :: rho_b
 
 The bulk density of the particles in g/cm^3.
