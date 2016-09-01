@@ -14,9 +14,10 @@ eps           = 1.d-2,                  ! Dust-to-gas ratio
 mu            = 2.3,                    ! Mean molecular weight of gas in proton masses
 smoothing     = 0.6d0,                  ! Smooting length in units of scale height at planet position
 
-do_growth     = 0,                      ! Include particle growth? 1: Yes. 0: No.
-do_frag       = 0,                      ! Include fragmentation?   1: Yes. 0: No.
+do_growth     = 0,                      ! Include particle growth?      1: Yes. 0: No.
+do_frag       = 0,                      ! Include fragmentation?        1: Yes. 0: No.
 v_frag        = 100.d0,                 ! Fragmentation velocity in cm/s
+do_randomwalk = 0,                      ! Do random walk of particles?  1: Yes. 0: No.
 
 Ea            = 5330.d0,                ! Activation energy for crystallization (Ea/kb) in units of K
 nu_vib        = 2.2d13,                 ! Vibrational frequency in s
