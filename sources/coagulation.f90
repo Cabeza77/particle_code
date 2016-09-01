@@ -99,8 +99,11 @@ module coagulation
         
         vf        = v_frag / sqrt( G*phys_mass/phys_dist )   ! Converting to FARGO units
         
+        ! Initialize f
+        f = 0.d0
+        
         if(dv .GT. vf) then ! Only fragment, when relative velocity large enough
-            f     = min( 1.d0, log(dv/vf) / log(5.d0) )      ! Loses at maximum its own sizeper collision
+            f = min( 1.d0, log(dv/vf) / log(5.d0) )      ! Loses at maximum its own sizeper collision
         end if
         
         frag_rate = - f * rho_dust / rho_bulk * dv * phys_dist
@@ -117,7 +120,7 @@ module coagulation
         double precision, intent(in) :: cs
         double precision, intent(in) :: St
     
-        v_rel = cs * sqrt( 3.d0*alpha*(St+1.d0/St) )
+        v_rel = cs * sqrt( 3.d0*alpha/(St+1.d0/St) )
     end function v_rel
 
 end module coagulation
