@@ -25,19 +25,19 @@ SRC_MAIN = $(SOURCE_DIR)/particle_code.f90
 MAIN_EXE = particle_code
 
 # Object files
-OBJ_FILES = nrecip.o interpolation.o constants.o variables.o aerodynamics.o io.o memory.o
+OBJ_FILES = nrecip.o interpolation.o constants.o variables.o aerodynamics.o io.o memory.o coagulation.o
 OBJ_MAIN  = particle_code.o
 
 all: $(MAIN_EXE) clean
 
 $(MAIN_EXE): $(OBJ_FILES) $(OBJ_MAIN)
-	$(FC) $(FFLAGS) -o $(@)  $(OBJ_FILES) $(OBJ_MAIN)
+	$(FC) $(FFLAGS) -o $(@) $(OBJ_FILES) $(OBJ_MAIN)
 
 $(OBJ_FILES): $(SOURCE_DIR)/*.f90 Makefile
 	$(FC) $(FFLAGS) -c $(SOURCE_DIR)/$(@:%.o=%.f90)
 
 $(OBJ_MAIN): $(SOURCE_DIR)/*.f90 Makefile
-	$(FC) $(FFLAGS) -c  $(SRC_MAIN)
+	$(FC) $(FFLAGS) -c $(SRC_MAIN)
 
 clean:
 	@rm -rf *.o *~ core *.mod
