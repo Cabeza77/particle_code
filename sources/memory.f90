@@ -45,6 +45,7 @@ module memory
         allocate( fc_dust(N_dust) )
         allocate( St(N_dust) )
         allocate( tstop(N_dust) )
+        allocate( dadt(N_dust) )
         
         allocate( time(0:N_t) )
         
@@ -94,6 +95,7 @@ module memory
         deallocate( fc_dust )
         deallocate( St )
         deallocate( tstop )
+        deallocate( dadt )
         
         deallocate( time )
         

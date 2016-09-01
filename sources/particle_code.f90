@@ -6,7 +6,7 @@ program particle_code
     use constants
     use interpolation
     use aerodynamics
-    use omp_lib
+    use coagulation
 
     implicit none
     
@@ -261,7 +261,9 @@ program particle_code
         ! Set the timestep here
         ! Maximum allowed timestep until next snapshot
         dt = 1.d100
-        ! Set the maximum timestep, such that the particles cannot travel more than one cell
+        ! Set the maximum timestep, such that the particles cannot travel more than one cell.
+        ! If Coagulation/fragmentation is included, limit the time step, such that the particle can change at maximum by it's
+        ! own size
 !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i, dr_dum, dt_dum) SCHEDULE(GUIDED, chunksize)
         do i=1, N_dust
             if(R_dust(i) .LE. 0.d0) goto 667
@@ -273,9 +275,20 @@ program particle_code
             end if
             ! Azimuthal grid cell width
             dt_dum = R_dust(i) * 2.d0 * pi / N_theta
+            ! Limit growth/fragmentation timestep
+            if(do_growth==1 .OR. do_frag==1) then
+                ! We need the stopping time
+                loc_sigma_gas  = interp2d(theta_dust(i), R_dust(i), theta, R, cur_sigma_gas,  N_theta, N_R)
+                loc_vR_gas     = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vR_gas,     N_theta, N_R)
+                loc_vTheta_gas = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vTheta_gas, N_theta, N_R)
+                T_dust(i)      = interp2d(theta_dust(i), R_dust(i), theta, R, cur_T_gas,      N_theta, N_R)
+                dummy    = sqrt( (vR_dust(i)-loc_vR_gas)**2.d0 + (vTheta_dust(i)-loc_vTheta_gas)**2.d0 )
+                St(i)    = stokes_number( a_dust(i), loc_sigma_gas, R_dust(i), dummy, T_dust(i) )
+                dadt(i)  = coagfrag_rate( R_dust(i), loc_sigma_gas, St(i), T_dust(i) )
+            end if
   ! Make sure that only one thread is writing on dt  
   !$OMP ATOMIC
-            dt = min(dt, abs(dr_dum/vR_dust(i)), abs(dt_dum/vTheta_dust(i)) )
+            dt = min(dt, abs(dr_dum/vR_dust(i)), abs(dt_dum/vTheta_dust(i)), abs(a_dust(i)/dadt(i)) )
 667         continue
         end do
 !$OMP END PARALLEL DO
@@ -291,6 +304,12 @@ program particle_code
         do i=1, N_dust
             ! Continue if particle is out of grid
             if(R_dust(i) .LE. 0.d0) goto 666
+            
+            ! Do particle growth first
+            if(do_growth==1 .OR. do_frag==1) then
+                a_dust(i) = max( a_dust(i) + dt*dadt(i), a_mono )
+                m_dust(i) = 4.d0/3.d0 * pi * rho_b * a_dust(i)**3.d0
+            end if
          
             ! First part of leap-frogging to update R and theta
             theta_dust(i) = theta_dust(i) + L_dust(i) / R_dust(i)**2.d0 * dt/2.d0 ! Azimuthal coordinate
@@ -397,10 +416,6 @@ program particle_code
             X_dust(i) = R_dust(i) * cos( theta_dust(i) )
             Y_dust(i) = R_dust(i) * sin( theta_dust(i) )
             
-            ! After all calculate the new crystallinity fraction
-            dummy = T_dust(i) * mu / R_gas * G * phys_mass / phys_dist
-            fc_dust(i) = min(1.d0, (fc_dust(i)**(1.d0/3.d0) + dt * 2.d0*zeta**(1.d0/3.d0)*nu_vib*exp(-Ea/dummy))**3.d0)
-            
             ! If the particle left the boundaries we change the radial coordinate to
             ! -1.d0: Inner boundary
             !  0.d0: Outer boundary
@@ -416,6 +431,11 @@ program particle_code
                 Y_dust(i) =  0.d0
                 goto 666
             end if
+            
+            ! After all calculate the new crystallinity fraction
+            dummy = T_dust(i) * mu / R_gas * G * phys_mass / phys_dist
+            fc_dust(i) = min(1.d0, (fc_dust(i)**(1.d0/3.d0) + dt * 2.d0*zeta**(1.d0/3.d0)*nu_vib*exp(-Ea/dummy))**3.d0)            
+            
 666       continue
 
           ! Check for validity

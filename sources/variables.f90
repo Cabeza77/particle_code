@@ -81,14 +81,18 @@ module variables
     double precision, allocatable :: m_dust(:)
     ! Radius of dust particles
     double precision, allocatable :: a_dust(:)
-    ! Radius of dust particles
+    ! Temperature of dust particles
     double precision, allocatable :: T_dust(:)
     ! Crystallinity fraction of dust particles
     double precision, allocatable :: fc_dust(:)
-    ! Minimum and maximum mass of dust particles
-    double precision              :: a_min, a_max
+    ! Change rate of particle radius
+    double precision, allocatable :: dadt(:)
+    ! Minimum and maximum initial size of dust particles and monomer radius
+    double precision              :: a_min, a_max, a_mono
     ! Initial mass distribution of dust particles
     integer                       :: a_dist_log
+    !Fragmentation velocity in cm/s
+    double precision              :: v_frag
     ! Bulk density of dust particles
     double precision              :: rho_b
     ! Initial particle distribution
@@ -124,6 +128,10 @@ module variables
     double precision :: phys_dist
     ! Physical mass of the of the Fargo mass unit
     double precision :: phys_mass
+    ! Shall we do grwoth?
+    integer :: do_growth
+    ! Shall we do fragmentation?
+    integer :: do_frag
     
 ! Disk parameters
 
@@ -133,5 +141,7 @@ module variables
     double precision :: mu
     ! Smoothing length
     double precision :: smoothing
+    ! Dust-to-gas ratio
+    double precision :: eps
 
 end module variables

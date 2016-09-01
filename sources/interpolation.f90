@@ -15,12 +15,13 @@ module interpolation
         double precision, intent(in) :: mat(Nx, Ny)
         integer,          intent(in) :: Nx, Ny
 
-!$OMP THREADPRIVATE(ix, iy)        
-        integer          :: ix=0, iy=0
+        integer          :: ix, iy
         double precision :: val00, val01, val10, val11
         double precision :: x0, x1, y0, y1
         double precision :: dum1, dum2
 
+        ix=0
+        iy=0
 
         call hunt(xArr, Nx, x, ix) 
         call hunt(yArr, Ny, y, iy)

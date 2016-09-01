@@ -23,16 +23,22 @@ module io
             a_dist_log    = 1                       ! Initial size distribution of dust particles
                                                     !   1: Logarithmic between a_min and a_max
                                                     !   0: All particles have radius a_max
+            a_mono        = 1.d-4                   ! Monomer size. This is the minimum radius a particle can reach, when
+                                                    ! fragmentation is included.
             rho_b         = 3.3d0                   ! Bulk density of dust particles in g/cm**3
             dens_dist     = 1                       ! Initial particle distribution
                                                     !   2: Uniformly in ring of size R_ring centered on planet
                                                     !   1: Like the gas density of the starting frame
-                                                    !   0: Uniformly distributed in R-theta-space (intrinsic R**-2 dependency)
+                                                    !   0: Uniformly distributed in R-theta-space (intrinsic 1/R dependency)
+            do_growth     = 0                       ! Include particle growth? 1: Yes. 0: No.
+            do_frag       = 0                       ! Include fragmentation?   1: Yes. 0: No.
+            v_frag        = 100.d0                  ! Fragmentation velocity in cm/s
             R_ring        = 20.d0                   ! Size in AU of the ring for dens_dist=2 
             phys_dist     = 1.d0                    ! Physical distance in AU of the Fargo distance unit
             phys_mass     = 1.d0                    ! Physical mass in solar masses of the Fargo mass unit
             adx           = 1.4d0                   ! Adiabatic index
             alpha         = 1.d-3                   ! Turbulent alpha parameter for random walk. (alpha=0.d0 => No random walk)
+            eps           = 1.d-2                   ! Dust-to-gas ratio
             mu            = 2.3                     ! Mean molecular weight of gas in proton masses
             smoothing     = 0.6d0                   ! Smooting length in units of scale height at planet position
             
@@ -92,11 +98,11 @@ module io
                 & output_dir, &
                 & i_start, i_stop, &
                 & N_dust, &
-                & a_min, a_max, a_dist_log, &
+                & a_min, a_max, a_dist_log, a_mono, do_growth, do_frag, v_frag, &
                 & rho_b, &
                 & dens_dist, R_ring, &
                 & phys_dist, phys_mass, &
-                & alpha, mu, adx, &
+                & alpha, mu, eps, adx, &
                 & smoothing, &
                 & Ea, nu_vib, zeta
                 
@@ -323,6 +329,21 @@ module io
             
             if(smoothing .LT. 0.d0) then
                 call write_stop_message("Your smoothing length is negative")
+                stop
+            end if
+            
+            if( (do_growth==1 .OR. do_frag==1) .AND. alpha==0.d0 ) then
+                call write_stop_message("Growth/Fragmentation needs alpha>0")
+                stop
+            end if
+            
+            if( a_mono .GT. a_max ) then
+                call write_stop_message("Your a_mono is larger than a_max")
+                stop
+            end if
+            
+            if( a_mono .GT. a_min .AND. a_dist_log==1 ) then
+                call write_stop_message("Your a_mono is larger than a_min")
                 stop
             end if
         
