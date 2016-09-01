@@ -92,6 +92,11 @@ The adiabatic index of the gas.
 The alpha viscosity parameter. This is used to add a random walk to the particles depending on their Stokes number due to turbulent motion of the gas. If this value is set to zero, no random walk will be added.
 
 
+    double precision :: eps
+    
+The dust-to-gas ratio. For particle growth and fragmentation the code assumes a constant gas-to-dust ratio to calculate the collision rates.
+
+
     double presision :: mu
     
 The mean molecular weight of the gas in proton masses.
@@ -100,6 +105,21 @@ The mean molecular weight of the gas in proton masses.
     double precision :: smoothing
 
 The smoothing length in units of pressure scale heights at the distance of the planet. This is the minimal distance a particle can have to the planet for the calculation of the gravitational potential in order to avoid division by zero.
+
+
+    integer :: do_growth
+
+Whether the code should do coagulation or not. 1: do coagulation, 0: don't do coagulation.
+
+
+    integer :: do_frag
+
+Whether the code should do fragmentation or not. 1: do fragmentation, 0: don't do fragmentation.
+
+
+    double precision :: v_frag
+    
+The fragmentation velocity in cm/s. If the relative particle velocity is larger than v_frag the particles fragment. If not, they grow.
 
 
     double precision :: Ea
@@ -138,6 +158,11 @@ The maximum initial particle size in cm if a_dist_log=1 and the monodisperse ini
 The initial particle size distribution.
 0: Monodisperse. All particles have size a_max
 1: Logarithmically uniform between a_min and a_max
+
+
+    double precision :: a_mono
+
+The monomer size in cm. When do_fragmentation=1 this is the minimum size a particle can have.
 
 
     double precision :: rho_b
