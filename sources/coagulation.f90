@@ -25,8 +25,8 @@ module coagulation
             coagfrag_rate = coagfrag_rate + frag_rate(R, sigma, St, T)
         end if
 
-        ! We only grow, if we don#t fragment
-        if(do_growth==1 .AND. coagfrag_rate==0.d0 ) then
+        ! We only grow, if we don't fragment
+        if(do_growth==1 .AND. coagfrag_rate.GE.0.d0 ) then
             coagfrag_rate = coagfrag_rate + coag_rate(R, sigma, St, T)
         end if
         

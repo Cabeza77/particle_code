@@ -285,6 +285,8 @@ program particle_code
                 dummy    = sqrt( (vR_dust(i)-loc_vR_gas)**2.d0 + (vTheta_dust(i)-loc_vTheta_gas)**2.d0 )
                 St(i)    = stokes_number( a_dust(i), loc_sigma_gas, R_dust(i), dummy, T_dust(i) )
                 dadt(i)  = coagfrag_rate( R_dust(i), loc_sigma_gas, St(i), T_dust(i) )
+                ! If particle fragments and already has minimum size, ignore to speed up programm
+                if(dadt(i) .LT. 0.d0 .AND. a_dust(i)==a_mono) dadt(i) = 0.d0
             end if
   ! Make sure that only one thread is writing on dt  
   !$OMP ATOMIC
