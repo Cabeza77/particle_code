@@ -261,6 +261,8 @@ program particle_code
         ! Set the timestep here
         ! Maximum allowed timestep until next snapshot
         dt = 1.d100
+        ! Initialize growth rate
+        dadt = 0.d0
         ! Set the maximum timestep, such that the particles cannot travel more than one cell.
         ! If Coagulation/fragmentation is included, limit the time step, such that the particle can change at maximum by it's
         ! own size
