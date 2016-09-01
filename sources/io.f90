@@ -30,8 +30,9 @@ module io
                                                     !   2: Uniformly in ring of size R_ring centered on planet
                                                     !   1: Like the gas density of the starting frame
                                                     !   0: Uniformly distributed in R-theta-space (intrinsic 1/R dependency)
-            do_growth     = 0                       ! Include particle growth? 1: Yes. 0: No.
-            do_frag       = 0                       ! Include fragmentation?   1: Yes. 0: No.
+            do_growth     = 0                       ! Include particle growth?        1: Yes. 0: No.
+            do_frag       = 0                       ! Include fragmentation?          1: Yes. 0: No.
+            do_randomwalk = 0                       ! Include random particle walk?   1: Yes. 0: No.
             v_frag        = 100.d0                  ! Fragmentation velocity in cm/s
             R_ring        = 20.d0                   ! Size in AU of the ring for dens_dist=2 
             phys_dist     = 1.d0                    ! Physical distance in AU of the Fargo distance unit
@@ -98,7 +99,7 @@ module io
                 & output_dir, &
                 & i_start, i_stop, &
                 & N_dust, &
-                & a_min, a_max, a_dist_log, a_mono, do_growth, do_frag, v_frag, &
+                & a_min, a_max, a_dist_log, a_mono, do_growth, do_frag, v_frag, do_randomwalk, &
                 & rho_b, &
                 & dens_dist, R_ring, &
                 & phys_dist, phys_mass, &
@@ -346,6 +347,11 @@ module io
                 call write_stop_message("Your a_mono is larger than a_min")
                 stop
             end if
+            
+            if( do_randomwalk==1 .AND. alpha==0.d0 ) then
+                call write_stop_message("Random walk needs alpha>0")
+                stop
+            end if
         
         end subroutine check_inputs
 
@@ -459,28 +465,43 @@ module io
             implicit none
             write(*,*) achar(27)//'[32mWELCOME TO THE SHOW!'
             write(*,*) '     I detected the following inputs:'
-            write(*,'(1X, A, I0)') '        # radial grid points:    ', N_R
-            write(*,'(1X, A, I0)') '        # azimuthal grid points: ', N_theta
-            write(*,'(1X, A, I0)') '        # first snaphot:         ', i_start
-            write(*,'(1X, A, I0)') '        # last snaphot:          ', i_stop
+            write(*,'(1X, A, I0)') '        # radial grid points:     ', N_R
+            write(*,'(1X, A, I0)') '        # azimuthal grid points:  ', N_theta
+            write(*,'(1X, A, I0)') '        # first snaphot:          ', i_start
+            write(*,'(1X, A, I0)') '        # last snaphot:           ', i_stop
             write(*,*)
-            write(*,'(1X, A, I0)') '        # dust particles:        ', N_dust
+            write(*,'(1X, A, I0)') '        # dust particles:         ', N_dust
             if(a_dist_log==1) then
                 write(*,*) '        # initial particle sizes logarithmically spaced between a_min and a_max'
                 write(*,'(1X, A, e9.3e2, A)') '             a_min = ', a_min, ' cm'
                 write(*,'(1X, A, e9.3e2, A)') '             a_max = ', a_max, ' cm'
             else
-                write(*,'(1X, A, e9.3e2, A)') '        # initial particle size: ', a_max, ' cm'
+                write(*,'(1X, A, e9.3e2, A)') '        # initial particle size:  ', a_max, ' cm'
             end if
-            write(*,'(1X, A, e9.3e2, A)') '        # particle bulk density: ', rho_b, ' g/cm3'
+            write(*,'(1X, A, e9.3e2, A)') '        # particle bulk density:  ', rho_b, ' g/cm3'
             write(*,*)
-            write(*,'(1X, A, f3.1)') '        # adiabatic index:       ', adx
-            write(*,'(1X, A, f4.1, A)') '        # smoothing length:      ', smoothing*100.d0, ' % of local pressure scale height'
-            write(*,'(1X, A, e9.3e2)') '        # alpha viscosity:       ', alpha
+            if(do_growth==1) then
+                write(*,*) '        # You want to do particle growth'
+            end if
+            if(do_frag==1) then
+                write(*,*) '        # You want to do fragmentation'
+                write(*,'(1X, A, f6.1, A)') '             v_frag = ', v_frag, '    cm/s'
+                write(*,'(1X, A, e9.3e2, A)') '             a_mono = ', a_mono, ' cm'
+            end if
+            if(do_frag==1 .OR. do_growth==1) then
+                write(*,*)
+            end if
+            if(do_randomwalk==1) then
+                write(*,*) '        # Your particles are doing a random walk'
+                write(*,*)
+            end if
+            write(*,'(1X, A, f3.1)') '        # adiabatic index:        ', adx
+            write(*,'(1X, A, f4.1, A)') '        # smoothing length:       ', smoothing*100.d0, ' % of local pressure scale height'
+            write(*,'(1X, A, e9.3e2)') '        # alpha viscosity:        ', alpha
             write(*,*)
-            write(*,'(1X, A, e9.3e2, A)') '        # activation energy:     ', Ea, ' K'
-            write(*,'(1X, A, e9.3e2, A)') '        # vibrational frequency: ', nu_vib, ' Hz'
-            write(*,'(1X, A, e9.3e2)') '        # growth centers:        ', zeta
+            write(*,'(1X, A, e9.3e2, A)') '        # activation energy:      ', Ea, ' K'
+            write(*,'(1X, A, e9.3e2, A)') '        # vibrational frequency:  ', nu_vib, ' Hz'
+            write(*,'(1X, A, e9.3e2)') '        # growth centers:         ', zeta
             write(*,*)
             write(*,'(1X, A, f4.1, A)') '        # one FARGO distance unit corresponds to ', phys_dist/AU, ' AU'
             write(*,'(1X, A, f4.1, A)') '        # the central star has a mass of ', phys_mass/m_sun, ' M_sun'

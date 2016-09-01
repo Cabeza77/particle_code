@@ -332,7 +332,7 @@ program particle_code
             H = sqrt( adx*T_dust(i)*R_dust(i)**3.d0 )
             
             ! Add turbulence as random walk
-            if(alpha .GT. 0.d0) then
+            if(do_randomwalk == 1) then
                 ! Viscosity at the position of the particle
                 ! nu = alpha * cs * H = alpha * H**2 * omega
                 nu_visc = alpha * H**2.d0 / sqrt( R_dust(i)**3.d0 )

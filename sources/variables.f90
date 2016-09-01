@@ -132,6 +132,8 @@ module variables
     integer :: do_growth
     ! Shall we do fragmentation?
     integer :: do_frag
+    ! Shall we do a random walk?
+    integer :: do_randomwalk
     
 ! Disk parameters
 
