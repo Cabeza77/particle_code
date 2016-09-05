@@ -56,7 +56,7 @@ cmap_radius = LinearSegmentedColormap('Radius', color_dict)
 
 
 ##### OPTIONS ######################################################################################################################
-column  = 11                          # Column in dust file you want plot
+column  = 9                           # Column in dust file you want plot
                                       #  0: particle identifier
                                       #  1: R
                                       #  2: theta
@@ -72,19 +72,19 @@ column  = 11                          # Column in dust file you want plot
                                       # 12: Stopping time [s]
                                       # 13: Temperature [K]
                                       # 14: Crystallinity fraction
-val_min = 1.e-2                       # Minimum and maximum value you want
-val_max = 1.e2                        #     to plot.
+val_min = 10.**(-0.5)                 # Minimum and maximum value you want
+val_max = 10.**(0.5)                  #     to plot.
 log     = True                        # Shall the scale be loagrithmic?
 
-col_min = val_min                     # Minimum and maximum value
-col_max = val_max                     #     of colorbar
-cmap    = cmap_stokes                 # What colorbar do you want?
-clabel  = r'Log Stokes number'        # Label of the colorbar. LaTeX allowed.
+col_min = 1.e-4                       # Minimum and maximum value
+col_max = 1.e2                        #     of colorbar
+cmap    = cmap_radius                 # What colorbar do you want?
+clabel  = r'Log Radius [cm]'          # Label of the colorbar. LaTeX allowed.
 
 psize   = 3.                          # Particle point size in plot
 palpha  = 1.                          # Particle alpha value in plot
 
-spec_R  = False                       # Do want to specify your own R boundaries?
+spec_R  = True                        # Do want to specify your own R boundaries?
 R_min   = 3.                          # Your chosen R boundaries, if spec_R = True.
 R_max   = 100.                        #     (in AU)
 

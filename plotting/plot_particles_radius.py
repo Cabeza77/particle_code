@@ -19,6 +19,82 @@ import sys
 import os
 
 
+##### COSTUM COLORBARS #############################################################################################################
+# Stokes number: blue - dark blue - yellow - red - dark red
+St_range = 0.1
+color_dict = {'red':   ((0.00,          0.00,         0.00         ),
+                        (0.50-St_range, 0.00,         0.00         ),
+                        (0.50,          1.00,         1.00         ),
+                        (0.50+St_range, 1.00,         1.00         ),
+                        (1.00,          0.33,         0.33         )),
+              'green': ((0.00,          0.00,         0.00         ),
+                        (0.50-St_range, 0.00,         0.00         ),
+                        (0.50,          0.75,         0.75         ),
+                        (0.50+St_range, 0.00,         0.00         ),
+                        (1.00,          0.00,         0.00         )),
+              'blue':  ((0.00,          1.00,         1.00         ),
+                        (0.50-St_range, 0.33,         0.33         ),
+                        (0.50,          0.00,         0.00         ),
+                        (0.50+St_range, 0.00,         0.00         ),
+                        (1.00,          0.00,         0.00         )),
+             }
+cmap_stokes = LinearSegmentedColormap('Stokes number', color_dict)
+# Particle radius: black - blue - purple - orange - green
+color_dict = {'red':   ((0.00,          0.00,         0.00         ),
+                        (0.50,          0.67,         0.67         ),
+                        (0.75,          1.00,         1.00         ),
+                        (1.00,          0.00,         0.00         )),
+              'green': ((0.00,          0.00,         0.00         ),
+                        (0.50,          0.00,         0.00         ),
+                        (1.00,          1.00,         1.00         )),
+              'blue':  ((0.00,          0.00,         0.00         ),
+                        (0.25,          1.00,         1.00         ), 
+                        (0.50,          0.67,         0.67         ),
+                        (1.00,          0.00,         0.00         )),
+             }
+cmap_radius = LinearSegmentedColormap('Radius', color_dict)
+
+
+##### OPTIONS ######################################################################################################################
+column  = 9                           # Column in dust file you want plot
+                                      #  0: particle identifier
+                                      #  1: R
+                                      #  2: theta
+                                      #  3: R-velocity
+                                      #  4: theta-velocity
+                                      #  5: X
+                                      #  6: Y
+                                      #  7: X-velocity
+                                      #  8: Y-velocity
+                                      #  9: Radius [cm]
+                                      # 10: Mass [g]
+                                      # 11: Stokes number
+                                      # 12: Stopping time [s]
+                                      # 13: Temperature [K]
+                                      # 14: Crystallinity fraction
+val_min = 1.e-4                       # Minimum and maximum value you want
+val_max = 1.e2                        #     to plot.
+log     = True                        # Shall the scale be loagrithmic?
+
+col_min = val_min                     # Minimum and maximum value
+col_max = val_max                     #     of colorbar
+cmap    = cmap_radius                 # What colorbar do you want?
+clabel  = r'Log Radius [cm]'          # Label of the colorbar. LaTeX allowed.
+
+psize   = 3.                          # Particle point size in plot
+palpha  = 1.                          # Particle alpha value in plot
+
+spec_R  = False                       # Do want to specify your own R boundaries?
+R_min   = 3.                          # Your chosen R boundaries, if spec_R = True.
+R_max   = 100.                        #     (in AU)
+
+col_pla = '#00FFFF'                   # Color of the planet
+plsize  = 8                           # Size of the planet
+show_La = True                        # Show the Lagrangian points?
+col_La  = '#FF0000'                   # Color of the Lagrangian points
+Lasize  = 6                           # Size of the Lagrangian points
+
+
 ##### CHECK FOR ARGUMENTS ##########################################################################################################
 try:
     fargo_dir = sys.argv[1]
@@ -41,7 +117,7 @@ except:
 ##### LOAD USED_RAD.DAT ############################################################################################################
 # This file contains the positions of the radial grid cell interfaces
 try:
-    used_rad = np.loadtxt(fargo_dir+'/used_rad.dat') * u.AU
+    used_rad = np.loadtxt(fargo_dir+'/used_rad.dat')
 except:
     sys.exit('Could not load used_rad.dat!')
 
@@ -52,7 +128,6 @@ N_R       = int( dims[6] )                            # Number of radial gridpoi
 N_theta   = int( dims[7] )                            # Number of angular grid points
 R_cen     = 0.5 * (used_rad[:-1] + used_rad[1:] )     # Calculate radial cell centers
 theta_cen = np.linspace( 0., 2.*const.pi, N_theta )   # Theta grid
-N_t = 500
 
 
 ##### LOAD PLANET0.DAT #############################################################################################################
@@ -67,102 +142,95 @@ for i in range(planet0.shape[0]):
         planet0[i-1:planet0.shape[0]-1, :] = planet0[i:,:]
     dummy_i = planet0[i, 0]
 # Cartesian coordinates of the planet
-planet_x = planet0[:,1] * u.AU
-planet_y = planet0[:,2] * u.AU
+planet_x = planet0[:,1]
+planet_y = planet0[:,2]
 # Trannsform to polar coordinates
 planet_R     = np.sqrt( planet_x**2 + planet_y**2 )
 planet_theta = np.arctan2( planet_y, planet_x )
         
         
-##### LOAD DUST PARTICLES ##########################################################################################################
-# Boolean array of time steps where there is dust
+##### CHECK DUST FILES #############################################################################################################
+# Here we check which dust files exist and how many dust particles we have.
+# ¡¡¡ All files need to have the same amount of dust particles !!!
+
+# Boolean array of time steps where we have dust files
 dust_exists = np.zeros( N_t+1, dtype=bool)
 for i in range(N_t+1):
     if(os.path.isfile(dust_dir+'/dust'+repr(i)+'.dat')):
         dust_exists[i] = True
-i_image = 0
-# Load particle positions
+
+# Get number of dust particles and initialize dust array
+N_dust = 0
 if(np.any(dust_exists)):
     # Number of dust particles
-    N_d = (np.loadtxt(dust_dir+'/dust'+repr(np.where(dust_exists)[0][0])+'.dat', comments='#')).shape[0]
-    # Dust array
-    dust = np.zeros( (N_d, 3) )
-    dust[:, 2] = 1.e-100
-if(dust_exists[i_image]):
-    dummy = np.loadtxt(dust_dir+'/dust'+repr(i_image)+'.dat', comments='#')
-    for j in range(N_d):
-        dust[j, 0] = dummy[j, 1] # Radial position
-        dust[j, 1] = dummy[j, 2] # Azimuthal position
-        dust[j, 2] = dummy[j, 9] # Particle radius
-    dust[ dust[:, 0] < R_cen[1].to(u.AU).value, 0 ] = 1.e6
+    N_dust = (np.loadtxt(dust_dir+'/dust'+repr(np.where(dust_exists)[0][0])+'.dat', comments='#')).shape[0]
+# Dust array
+dust   = np.zeros( (N_dust, 3) )
+    
+    
+##### FUNCTION TO LOAD DUST FILE ###################################################################################################
+def load_dust_file(i_frame, i_col):
+    if(not dust_exists[i_frame]):
+        dust[:, 0] = 1.e100
+        return
+    dummy = np.loadtxt(dust_dir+'/dust'+repr(i_frame)+'.dat', comments='#')
+    for j in range(N_dust):
+        dust[j, 0] = dummy[j, 1]     # Radial position
+        dust[j, 1] = dummy[j, 2]     # Azimuthal position
+        dust[j, 2] = dummy[j, i_col] # Chosen column
+    # If dust is out of boundaries, set R to huge value.
+    dust[ dust[:, 0] < R_min, 0 ] = 1.e100
+    # Chose column value in desired range
+    dust[ dust[:, 2] < val_min, 0 ] = 1.e100
+    dust[ dust[:, 2] > val_max, 0 ] = 1.e100
+    # Convert to log scale if wanted
+    if(log):
+        dust[:, 2] = np.log10( dust[:, 2] )
+    
+    
+##### SET OPTIONS ##################################################################################################################
+# R boundaries
+if(not spec_R):
+    R_min = used_rad[0]
+    R_max = used_rad[-1]
+# Colorbar limits
+if(log):
+    clim = [ np.floor( np.log10( col_min ) ), np.ceil( np.log10( col_max ) ) ]
+else:
+    clim = [ col_min, col_max ]
+    
 
 ##### PLOTTING #####################################################################################################################
-# Create colormap
-St_range = 0.1
-color_dict = {'red':   ((0.00,          0.00,         0.00         ),
-                        (0.50-St_range, 0.00,         0.00         ),
-                        (0.50,          1.00,         1.00         ),
-                        (0.50+St_range, 1.00,         1.00         ),
-                        (1.00,          0.33,         0.33         )),
-              'green': ((0.00,          0.00,         0.00         ),
-                        (0.50-St_range, 0.00,         0.00         ),
-                        (0.50,          0.75,         0.75         ),
-                        (0.50+St_range, 0.00,         0.00         ),
-                        (1.00,          0.00,         0.00         )),
-              'blue':  ((0.00,          1.00,         1.00         ),
-                        (0.50-St_range, 0.33,         0.33         ),
-                        (0.50,          0.00,         0.00         ),
-                        (0.50+St_range, 0.00,         0.00         ),
-                        (1.00,          0.00,         0.00         )),
-             }
-color_dict = {'red':   ((0.00,          0.00,         0.00         ),
-                        (0.50,          0.67,         0.67         ),
-                        (0.75,          1.00,         1.00         ),
-                        (1.00,          0.00,         0.00         )),
-              'green': ((0.00,          0.00,         0.00         ),
-                        (0.50,          0.00,         0.00         ),
-                        (1.00,          1.00,         1.00         )),
-              'blue':  ((0.00,          0.00,         0.00         ),
-                        (0.25,          1.00,         1.00         ), 
-                        (0.50,          0.67,         0.67         ),
-                        (1.00,          0.00,         0.00         )),
-             }
-colormap = LinearSegmentedColormap('Stokes number', color_dict)
-#colormap = 'brg'
+# Load first frame
+frame = 0
+load_dust_file(frame, column)
 
-# Particle display properties
-particle_size  = 3.
-particle_alpha = 1.
 
 # Create plot
 fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))           # Use polar coordinate system
 plt.subplots_adjust(bottom=0.25)                                      # Create space at the bottom for the slider
 
-if(np.any(dust_exists)):
-    scatter = ax.scatter(dust[:,1], dust[:,0], c=np.log10(dust[:,2]), s=particle_size, cmap=colormap, linewidths=0., alpha=particle_alpha, edgecolor='')
-    St_max = np.ceil( np.log10( np.max( dust[:, 2] ) ) )
-    St_min = St_max - 6.
-    St_min = -4
-    St_max = 2
-    scatter.set_clim( [St_min, St_max] )
-    cbar_ticks = np.arange( St_min, St_max+0.1, 1. )
-    cbar = fig.colorbar(scatter)                                             # Show colorbar
-    cbar.ax.set_ylabel('log Particle radius [cm]')
-    cbar.set_ticks(cbar_ticks)
-    cbar.solids.set_edgecolor("face")
 
-planet, = ax.plot(planet_theta[i_image], planet_R[i_image].to(u.AU), color='cyan', marker='o', markersize=8, markeredgecolor='black') # Star at planet position
-L4, = ax.plot(planet_theta[i_image]+const.pi/3.*u.rad, planet_R[i_image].to(u.AU), color='red', marker='o', markersize=6, markeredgecolor='black')
-L5, = ax.plot(planet_theta[i_image]-const.pi/3.*u.rad, planet_R[i_image].to(u.AU), color='red', marker='o', markersize=6, markeredgecolor='black')
+scatter = ax.scatter(dust[:,1], dust[:,0], c=dust[:,2], s=psize, cmap=cmap, linewidths=0., alpha=palpha, edgecolor='')
+scatter.set_clim( clim )
+cbar = fig.colorbar(scatter)
+cbar.ax.set_ylabel(clabel)
+cbar.solids.set_edgecolor("face")
 
-ax.set_rmin(-R_cen[0].to(u.AU).value)                                 # Creating inner hole. Otherwise R=R_min would be in the center
-ax.set_rmax(R_cen[-1].to(u.AU).value)                                 # Needed somehow to define outer limit.
+planet, = ax.plot(planet_theta[frame], planet_R[frame], color=col_pla, marker='o', markersize=plsize, markeredgecolor='black') # Star at planet position
+
+if(show_La):
+    L4, = ax.plot(planet_theta[frame]+const.pi/3., planet_R[frame], color=col_La, marker='o', markersize=Lasize, markeredgecolor='black')
+    L5, = ax.plot(planet_theta[frame]-const.pi/3., planet_R[frame], color=col_La, marker='o', markersize=Lasize, markeredgecolor='black')
+
+ax.set_rmin(-R_min)                                 # Creating inner hole. Otherwise R=R_min would be in the center
+ax.set_rmax(R_max)                                  # Needed somehow to define outer limit.
 
 ax.tick_params(axis='x', labelbottom='off')                           # Turns off the theta axis labelling
 ax.tick_params(axis='y', colors='black', size=16)                     # Change radial labelling to white for better visibility
 
 
-plt.grid(b=True)                                                      # Disable grid. Looks ugla with grid
+plt.grid(b=True)                                                      # Enable grid
 
 # Create slider for the time
 ax_time     = plt.axes([0.25, 0.1, 0.5, 0.03], axisbg='lightgoldenrodyellow')
@@ -181,28 +249,21 @@ plt.show()                  # Show plot
 def update(val):
     i = int(np.floor(slider_time.val))  # Slider position
     
-    if(dust_exists[i]):
-        dummy = np.loadtxt(dust_dir+'/dust'+repr(i)+'.dat', comments='#')
-        for j in range(N_d):
-            dust[j, 0] = dummy[j, 1] # Radial position
-            dust[j, 1] = dummy[j, 2] # Azimuthal position
-            dust[j, 2] = dummy[j, 9] # Stokes number
-        dust[ dust[:, 0] < R_cen[1].to(u.AU).value, 0 ] = 1.e6
-    else:
-        dust[:, 0] = 1.e6
+    load_dust_file(i, column)
             
     scatter.set_offsets( dust[:, 1::-1] )
-    scatter.set_array( np.log10(dust[:,2]) )
-    scatter.set_clim( [St_min, St_max] )
+    scatter.set_array( dust[:,2] )
     
     # Update planet location    
-    planet.set_data( (planet_theta[i], planet_R[i].to(u.AU)) )
-    L4.set_data( (planet_theta[i]+const.pi/3.*u.rad, planet_R[i].to(u.AU)) )
-    L5.set_data( (planet_theta[i]-const.pi/3.*u.rad, planet_R[i].to(u.AU)) )
+    planet.set_data( (planet_theta[i], planet_R[i]) )
+    
+    if(show_La):
+        L4.set_data( (planet_theta[i]+const.pi/3., planet_R[i]) )
+        L5.set_data( (planet_theta[i]-const.pi/3., planet_R[i]) )
     
     # Rescale axes. Don't know why this has to be done again.
-    ax.set_rmin(-R_cen[0].to(u.AU).value)
-    ax.set_rmax(R_cen[-1].to(u.AU).value)
+    ax.set_rmin(-R_min)
+    ax.set_rmax(R_max)
     
     plt.draw() # Draw updates
     
@@ -216,30 +277,26 @@ def create_movie(event):
     for j, i in enumerate(np.arange(i_start, N_t+1)):
         movie_fig, movie_ax = plt.subplots(subplot_kw=dict(projection='polar'))
         
-        if(dust_exists[i]):
-            dummy = np.loadtxt(dust_dir+'/dust'+repr(i)+'.dat', comments='#')
-            for k in range(N_d):
-                dust[k, 0] = dummy[k,  1] # Radial position
-                dust[k, 1] = dummy[k,  2] # Azimuthal position
-                dust[k, 2] = dummy[k, 9]  # Particle radius
-            dust[ dust[:, 0] < R_cen[1].to(u.AU).value, 0 ] = 1.e6
-        else:
-            dust[:, 0] = 1.e6
+        load_dust_file(i, column)
             
-        movie_scatter = movie_ax.scatter(dust[:,1], dust[:,0], c=np.log10(dust[:,2]), s=particle_size, cmap=colormap, linewidths=0., alpha=particle_alpha, edgecolor='')
-        movie_scatter.set_clim( [St_min, St_max] )
-        movie_cbar_ticks = np.arange( St_min, St_max+0.1, 1. )
-        movie_cbar = movie_fig.colorbar(movie_scatter)                                             # Show colorbar
-        movie_cbar.ax.set_ylabel('log Particle radius [cm]')
-        movie_cbar.set_ticks(movie_cbar_ticks)
+        movie_scatter = movie_ax.scatter(dust[:,1], dust[:,0], c=dust[:,2], s=psize, cmap=cmap, linewidths=0., alpha=palpha, edgecolor='')
+        movie_scatter.set_clim( clim )
+        movie_cbar = movie_fig.colorbar(movie_scatter)
+        movie_cbar.ax.set_ylabel(clabel)
         movie_cbar.solids.set_edgecolor("face")
             
-        movie_planet, = movie_ax.plot(planet_theta[i], planet_R[i].to(u.AU), color='cyan', marker='o', markersize=8, markeredgecolor='black')
-        movie_ax.set_rmin(-R_cen[0].to(u.AU).value)
-        movie_ax.set_rmax(R_cen[-1].to(u.AU).value)
+        movie_planet, = movie_ax.plot(planet_theta[i], planet_R[i], color=col_pla, marker='o', markersize=plsize, markeredgecolor='black')
+        
+        if(show_La):
+            L4, = ax.plot(planet_theta[i]+const.pi/3., planet_R[i], color=col_La, marker='o', markersize=Lasize, markeredgecolor='black')
+            L5, = ax.plot(planet_theta[i]-const.pi/3., planet_R[i], color=col_La, marker='o', markersize=Lasize, markeredgecolor='black')
+        
+        movie_ax.set_rmin(-R_min)
+        movie_ax.set_rmax(R_max)
         movie_ax.tick_params(axis='x', labelbottom='off')
         movie_ax.tick_params(axis='y', colors='black')
         plt.grid(b=True)
+        
         img_name = 'movie_plot_%05i%s'%(i, img_format)
         plt.savefig(dir_name+'/'+img_name)
         print 'Saving image: '+dir_name+'/'+img_name
