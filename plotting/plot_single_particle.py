@@ -108,50 +108,54 @@ if(i_dust < 1 or i_dust > N_dust):
     sys.exit('The particle identifier is out of range.')
 
 # Read the dust properties
+print('Loading files...')
 for it in range(N_t+1):
     if(dust_exists[it]):
-        dummy = np.loadtxt(dust_dir+'/dust'+repr(it)+'.dat', comments='#')
-        dummy = dummy[ (np.where(dummy[:, :] == i_dust))[0][0], : ]
-        try:
-            dust[it, 0] = dummy[ 1]   # R
-        except:
-            pass
-        try:
-            dust[it, 1] = dummy[ 2]   # theta
-        except:
-            pass
-        try:
-            dust[it, 2] = dummy[ 3]   # vR
-        except:
-            pass
-        try:
-            dust[it, 3] = dummy[ 4]   # vTheta
-        except:
-            pass
-        try:
-            dust[it, 4] = dummy[ 9]   # a
-        except:
-            pass
-        try:
-            dust[it, 5] = dummy[10]   # m
-        except:
-            pass
-        try:
-            dust[it, 6] = dummy[11]   # St
-        except:
-            pass
-        try:
-            dust[it, 7] = dummy[15]   # Sigma gas
-        except:
-            pass
-        try:
-            dust[it, 8] = dummy[13]   # T
-        except:
-            pass
-        try:
-            dust[it, 9] = dummy[14]   # xi
-        except:
-            pass
+        dummy = np.genfromtxt(dust_dir+'/dust'+repr(it)+'.dat', comments='#', skip_header=i_dust, skip_footer=N_dust-i_dust)
+        if(dummy[1]>0.):
+            try:
+                dust[it, 0] = dummy[ 1]   # R
+            except:
+                pass
+            try:
+                dust[it, 1] = dummy[ 2]   # theta
+            except:
+                pass
+            try:
+                dust[it, 2] = dummy[ 3]   # vR
+            except:
+                pass
+            try:
+                dust[it, 3] = dummy[ 4]   # vTheta
+            except:
+                pass
+            try:
+                dust[it, 4] = dummy[ 9]   # a
+            except:
+                pass
+            try:
+                dust[it, 5] = dummy[10]   # m
+            except:
+                pass
+            try:
+                dust[it, 6] = dummy[11]   # St
+            except:
+                pass
+            try:
+                dust[it, 7] = dummy[15]   # Sigma gas
+            except:
+                pass
+            try:
+                dust[it, 8] = dummy[13]   # T
+            except:
+                pass
+            try:
+                dust[it, 9] = dummy[14]   # xi
+            except:
+                pass
+    printline = "\r      {:4.1f} %".format(100.0*it/N_t)
+    print(printline),
+print('\n\r   ...done.')
 
 
 ##### PLOTTING #####################################################################################################################
@@ -192,54 +196,56 @@ ax10 = fig.add_subplot(gs01[4, :], sharex=ax1)
 
 ax11 = fig.add_subplot(gs02[:, :], projection='polar')
 
-ax1.plot(time.to(u.yr).value, dust[:, 0], lw=2, color='blue')
-ax1.plot(time[0].to(u.yr).value, dust[0, 0], 'o', color='#00FF00')
-ax1.plot(time[N_t].to(u.yr).value, dust[-1, 0], 'o', color='#FF0000')
+linewidth = 1
+
+ax1.plot(time.to(u.kyr).value, dust[:, 0], lw=linewidth, color='blue')
+ax1.plot(time[0].to(u.kyr).value, dust[0, 0], 'o', color='#00FF00')
+ax1.plot(time[N_t].to(u.kyr).value, dust[-1, 0], 'o', color='#FF0000')
 ax1.set_ylabel( r'$R\ \mathrm{[AU]}$' )
 ax1.grid(b=True)
 
-ax2.plot(time.to(u.yr).value, (dust[:, 2]*u.cm/u.s).to(u.au/u.kyr).value, lw=2, color='blue')
-ax2.set_ylabel( r'$v_\mathrm{rad}\ \mathrm{[AU/kyr]}$' )
+ax2.plot(time.to(u.kyr).value, (dust[:, 2]*u.cm/u.s).to(u.au/u.kyr).value, lw=linewidth, color='blue')
+ax2.set_ylabel( r'$v_\mathrm{R}\ \mathrm{[AU/kyr]}$' )
 ax2.grid(b=True)
 
-ax3.semilogy(time.to(u.yr).value, dust[:, 6], lw=2, color='purple')
+ax3.semilogy(time.to(u.kyr).value, dust[:, 6], lw=linewidth, color='purple')
 ax3.set_ylabel( r'$\mathrm{St}$' )
 ax3.grid(b=True)
 
-ax4.semilogy(time.to(u.yr).value, dust[:, 7], lw=2, color='purple')
+ax4.semilogy(time.to(u.kyr).value, dust[:, 7], lw=linewidth, color='purple')
 ax4.set_ylabel( r'$\Sigma_\mathrm{gas}\ \mathrm{[g/cm^2]}$' )
 ax4.grid(b=True)
 
-ax5.semilogy(time.to(u.yr).value, dust[:, 4], lw=2, color='green')
+ax5.semilogy(time.to(u.kyr).value, dust[:, 4], lw=linewidth, color='green')
 ax5.set_ylabel( r'$a\ \mathrm{[cm]}$' )
-ax5.set_xlabel( r'$t\ \mathrm{[yrs]}$' )
+ax5.set_xlabel( r'$t\ \mathrm{[kyr]}$' )
 ax5.grid(b=True)
 
-ax6.plot(time.to(u.yr).value, dust[:, 1], lw=2, color='blue')
-ax6.plot(time[0].to(u.yr).value, dust[0, 1], 'o', color='#00FF00')
-ax6.plot(time[N_t].to(u.yr).value, dust[-1, 1], 'o', color='#FF0000')
+ax6.plot(time.to(u.kyr).value, dust[:, 1], lw=linewidth, color='blue')
+ax6.plot(time[0].to(u.kyr).value, dust[0, 1], 'o', color='#00FF00')
+ax6.plot(time[N_t].to(u.kyr).value, dust[-1, 1], 'o', color='#FF0000')
 ax6.set_ylabel( r'$\theta\ \mathrm{[rad]}$' )
 ax6.set_ylim(0., 2.*const.pi)
 ax6.grid(b=True)
 
 #ax7.plot(time.to(u.yr).value, dust[:, 3], lw=2, color='blue')
-ax7.plot(time.to(u.yr).value, dust[:, 3]/np.sqrt( aconst.G * phys_mass / (dust[:, 0] * phys_dist) ).cgs.value, lw=2, color='blue')
-ax7.hlines(1., ax7.get_xlim()[0], ax7.get_xlim()[1])
+ax7.plot(time.to(u.kyr).value, dust[:, 3]/np.sqrt( aconst.G * phys_mass / (dust[:, 0] * phys_dist) ).cgs.value, lw=linewidth, color='blue')
+ax7.hlines(1., ax7.get_xlim()[0], ax7.get_xlim()[1], zorder=3)
 ax7.set_ylabel( r'$v_\theta\ [v_\mathrm{K}]$' )
 ax7.grid(b=True)
 
-ax8.plot(time.to(u.yr).value, dust[:, 8], lw=2, color='red')
+ax8.plot(time.to(u.kyr).value, dust[:, 8], lw=linewidth, color='red')
 ax8.set_ylabel( r'$T\ \mathrm{[K]}$' )
 ax8.grid(b=True)
 
-ax9.plot(time.to(u.yr).value, dust[:, 9], lw=2, color='red')
+ax9.plot(time.to(u.kyr).value, dust[:, 9], lw=linewidth, color='red')
 ax9.set_ylabel( r'$f_\mathrm{cryst}$' )
 ax9.set_ylim(-0.1, 1.1)
 ax9.grid(b=True)
 
-ax10.semilogy(time.to(u.yr).value, dust[:, 5], lw=2, color='green')
+ax10.semilogy(time.to(u.kyr).value, dust[:, 5], lw=linewidth, color='green')
 ax10.set_ylabel( r'$m\ \mathrm{[g]}$' )
-ax10.set_xlabel( r'$t\ \mathrm{[yrs]}$' )
+ax10.set_xlabel( r'$t\ \mathrm{[kyr]}$' )
 ax10.grid(b=True)
 
 ax11.plot(dust[:, 1], dust[:, 0])
