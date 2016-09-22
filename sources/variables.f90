@@ -85,6 +85,8 @@ module variables
     double precision, allocatable :: T_dust(:)
     ! Crystallinity fraction of dust particles
     double precision, allocatable :: fc_dust(:)
+    ! Local gas surface density at dust location
+    double precision, allocatable :: loc_sigma_gas_dust(:)
     ! Change rate of particle radius
     double precision, allocatable :: dadt(:)
     ! Minimum and maximum initial size of dust particles and monomer radius
@@ -128,10 +130,18 @@ module variables
     double precision :: phys_dist
     ! Physical mass of the of the Fargo mass unit
     double precision :: phys_mass
+    ! Physical time of the of the Fargo time unit
+    double precision :: phys_time
     ! Shall we do grwoth?
     integer :: do_growth
     ! Shall we do fragmentation?
     integer :: do_frag
+    ! Shall we use a different fragmentation velocity for icy material
+    integer :: use_frag_ice
+    ! Fragmentation velocity of icy material
+    double precision :: v_frag_ice
+    ! Temperature below which we assume material to be ice
+    double precision :: T_ice
     ! Shall we do a random walk?
     integer :: do_randomwalk
     

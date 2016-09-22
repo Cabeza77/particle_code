@@ -35,7 +35,7 @@ program particle_code
     !$ integer :: chunksize
     
     ! Local gas parameters
-    double precision :: loc_sigma_gas, loc_vR_gas, loc_vTheta_gas
+    double precision :: loc_vR_gas, loc_vTheta_gas
     
     ! Needed for the force calculations
     double precision :: d_pldu
@@ -171,13 +171,13 @@ program particle_code
     ! and with them the initial particle velocities
 !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i, dummy, dummy2) SCHEDULE(GUIDED, chunksize)
     do i=1, N_dust
-        T_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R,      T_gas(1, :, :), N_theta, N_R)
-        dummy     = interp2d(theta_dust(i), R_dust(i), theta, R,     vR_gas(1, :, :), N_theta, N_R)
-        dummy2    = interp2d(theta_dust(i), R_dust(i), theta, R, vtheta_gas(1, :, :), N_theta, N_R)
-        dummy2    = sqrt( (vR_dust(i)-dummy)**2.d0 + (vTheta_dust(i)-dummy2)**2.d0 ) ! relative gas-dust velocity
-        dummy     = interp2d(theta_dust(i), R_dust(i), theta, R,  sigma_gas(1, :, :), N_theta, N_R)
-        St(i)     = stokes_number( a_dust(i), dummy, R_dust(i), dummy2, T_dust(i) )
-        tstop(i)  = St(i) * sqrt( R_dust(i)**3.d0 )
+        T_dust(i)             = interp2d(theta_dust(i), R_dust(i), theta, R,      T_gas(1, :, :), N_theta, N_R)
+        dummy                 = interp2d(theta_dust(i), R_dust(i), theta, R,     vR_gas(1, :, :), N_theta, N_R)
+        dummy2                = interp2d(theta_dust(i), R_dust(i), theta, R, vtheta_gas(1, :, :), N_theta, N_R)
+        dummy2                = sqrt( (vR_dust(i)-dummy)**2.d0 + (vTheta_dust(i)-dummy2)**2.d0 ) ! relative gas-dust velocity
+        loc_sigma_gas_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R,  sigma_gas(1, :, :), N_theta, N_R)
+        St(i)                 = stokes_number( a_dust(i), loc_sigma_gas_dust(i), R_dust(i), dummy2, T_dust(i) )
+        tstop(i)              = St(i) * sqrt( R_dust(i)**3.d0 )
         
         if(St(i) .LT. 1.d0) then ! Fully coupled to gas
             vR_dust(i)     = interp2d(theta_dust(i), R_dust(i), theta, R, vR_gas(1, :, :),     N_theta, N_R)
@@ -280,13 +280,13 @@ program particle_code
             ! Limit growth/fragmentation timestep
             if(do_growth==1 .OR. do_frag==1) then
                 ! We need the stopping time
-                loc_sigma_gas  = interp2d(theta_dust(i), R_dust(i), theta, R, cur_sigma_gas,  N_theta, N_R)
-                loc_vR_gas     = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vR_gas,     N_theta, N_R)
-                loc_vTheta_gas = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vTheta_gas, N_theta, N_R)
-                T_dust(i)      = interp2d(theta_dust(i), R_dust(i), theta, R, cur_T_gas,      N_theta, N_R)
-                dummy    = sqrt( (vR_dust(i)-loc_vR_gas)**2.d0 + (vTheta_dust(i)-loc_vTheta_gas)**2.d0 )
-                St(i)    = stokes_number( a_dust(i), loc_sigma_gas, R_dust(i), dummy, T_dust(i) )
-                dadt(i)  = coagfrag_rate( R_dust(i), loc_sigma_gas, St(i), T_dust(i) )
+                loc_sigma_gas_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R, cur_sigma_gas,  N_theta, N_R)
+                loc_vR_gas            = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vR_gas,     N_theta, N_R)
+                loc_vTheta_gas        = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vTheta_gas, N_theta, N_R)
+                T_dust(i)             = interp2d(theta_dust(i), R_dust(i), theta, R, cur_T_gas,      N_theta, N_R)
+                dummy                 = sqrt( (vR_dust(i)-loc_vR_gas)**2.d0 + (vTheta_dust(i)-loc_vTheta_gas)**2.d0 )
+                St(i)                 = stokes_number( a_dust(i), loc_sigma_gas_dust(i), R_dust(i), dummy, T_dust(i) )
+                dadt(i)               = coagfrag_rate( R_dust(i), loc_sigma_gas_dust(i), St(i), T_dust(i) )
                 ! If particle fragments and already has minimum size, ignore to speed up programm
                 if(dadt(i) .LT. 0.d0 .AND. a_dust(i)==a_mono) dadt(i) = 0.d0
             end if
@@ -303,7 +303,7 @@ program particle_code
 
         ! Update particle values here
 !$OMP PARALLEL DO DEFAULT(SHARED) &
-!$OMP PRIVATE(i, H, nu_visc, l_visc, ran_theta, loc_sigma_gas, loc_vR_gas, loc_vTheta_gas, d_pldu, Fx, Fy, Fr, Ftheta, dummy) &
+!$OMP PRIVATE(i, H, nu_visc, l_visc, ran_theta, loc_vR_gas, loc_vTheta_gas, d_pldu, Fx, Fy, Fr, Ftheta, dummy) &
 !$OMP SCHEDULE(GUIDED, chunksize)
         do i=1, N_dust
             ! Continue if particle is out of grid
@@ -372,13 +372,13 @@ program particle_code
             end if
             
             ! Local gas parameters at particle position
-            loc_sigma_gas  = interp2d(theta_dust(i), R_dust(i), theta, R, cur_sigma_gas,  N_theta, N_R)
-            loc_vR_gas     = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vR_gas,     N_theta, N_R)
-            loc_vTheta_gas = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vTheta_gas, N_theta, N_R)
+            loc_sigma_gas_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R, cur_sigma_gas,  N_theta, N_R)
+            loc_vR_gas            = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vR_gas,     N_theta, N_R)
+            loc_vTheta_gas        = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vTheta_gas, N_theta, N_R)
             
             ! Calculate particles Stokes number and stopping time
             dummy    = sqrt( (vR_dust(i)-loc_vR_gas)**2.d0 + (vTheta_dust(i)-loc_vTheta_gas)**2.d0 ) ! relative gas-dust velocity
-            St(i)    = stokes_number( a_dust(i), loc_sigma_gas, R_dust(i), dummy, T_dust(i) )
+            St(i)    = stokes_number( a_dust(i), loc_sigma_gas_dust(i), R_dust(i), dummy, T_dust(i) )
             tstop(i) = St(i) * sqrt( R_dust(i)**3.d0 )
             
             ! Calculate the planetary forces and update the velocities
@@ -538,7 +538,7 @@ program particle_code
     
     call write_goodbye()
     
-    write(*,'(1X, A, 1X, f5.1, 1X, A)') 'Elapsed time: ', 1.d0*(time_finish-time_start)/time_rate/3600.d0, 'hrs.'
+    write(*,'(1X, A, 1X, f9.1, 1X, A)') 'Elapsed time: ', 1.d0*(time_finish-time_start)/time_rate/3600.d0, 'hrs.'
     write(*,*)
 
 end program particle_code

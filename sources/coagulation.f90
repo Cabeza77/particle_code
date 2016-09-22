@@ -70,7 +70,7 @@ module coagulation
     double precision function frag_rate(R, sigma, St, T)
     ! Change in radius in physical units due to fragmentation
         use constants
-        use variables, only: alpha, adx, rho_b, phys_dist, phys_mass, eps, v_frag
+        use variables, only: alpha, adx, rho_b, phys_dist, phys_mass, eps, v_frag, v_frag_ice, use_frag_ice, T_ice
     
         implicit none
         
@@ -97,7 +97,15 @@ module coagulation
         rho_dust  = eps * sigma / (sqrt(2.d0*pi)*H)          !  |
         rho_bulk  = rho_b / phys_mass * phys_dist**3.d0      ! ---
         
-        vf        = v_frag / sqrt( G*phys_mass/phys_dist )   ! Converting to FARGO units
+        ! Silicate fragmentation velocity
+        vf        = v_frag
+        
+        ! Do we need the ice fragmentation velocity?
+        if( use_frag_ice==1 .AND. T .LT. T_ice ) then
+            vf    = v_frag_ice
+        end if
+        
+        vf        = vf / sqrt( G*phys_mass/phys_dist )       ! Converting to FARGO units
         
         ! Initialize f
         f = 0.d0

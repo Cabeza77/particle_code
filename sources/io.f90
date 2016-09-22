@@ -34,6 +34,9 @@ module io
             do_frag       = 0                       ! Include fragmentation?          1: Yes. 0: No.
             do_randomwalk = 0                       ! Include random particle walk?   1: Yes. 0: No.
             v_frag        = 100.d0                  ! Fragmentation velocity in cm/s
+            use_frag_ice  = 0                       ! Shall we use a different velocity for ice?  1: Yes. 0: No.
+            v_frag_ice    = 1000.d0                 ! Fragmentation velocity of ice material in cm/s
+            T_ice         = 150.d0                  ! If colder that T_ice, we use v_frag_ice.
             R_ring        = 20.d0                   ! Size in AU of the ring for dens_dist=2 
             phys_dist     = 1.d0                    ! Physical distance in AU of the Fargo distance unit
             phys_mass     = 1.d0                    ! Physical mass in solar masses of the Fargo mass unit
@@ -100,6 +103,7 @@ module io
                 & i_start, i_stop, &
                 & N_dust, &
                 & a_min, a_max, a_dist_log, a_mono, do_growth, do_frag, v_frag, do_randomwalk, &
+                & use_frag_ice, v_frag_ice, T_ice, &
                 & rho_b, &
                 & dens_dist, R_ring, &
                 & phys_dist, phys_mass, &
@@ -118,8 +122,12 @@ module io
             
             phys_dist = phys_dist * AU
             phys_mass = phys_mass * M_sun
+            phys_time = sqrt( phys_dist**3.d0 / (G*phys_mass) )
             
             R_ring    = R_ring * AU / phys_dist
+            
+            ! Convert T_ice in Fargo units
+            T_ice = T_ice * R_gas/(mu*G) * phys_dist/phys_mass
         
         end subroutine read_namelist
         
@@ -402,21 +410,27 @@ module io
                 call write_stop_message("Could not write '"//trim(make_filename('dust', i, 'dat'))//"'")
                 stop
             end if
-            write(100,'(A1, 1X, A6, 14(1X, A19))') &
-                & '#', 'Number', &
-                & 'R', 'theta', 'v_R', 'v_theta', &
-                & 'X', 'Y', 'v_X', 'v_Y', &
+            write(100,'(A1, 1X, A10, 15(1X, A19))') &
+                & '#', 'Identifier', &
+                & 'R', 'theta', &
+                & 'v_R', 'v_theta', &
+                & 'X', 'Y', &
+                & 'v_X', 'v_Y', &
                 & 'Particle radius', 'Mass', &
                 & 'Stokes number', 'Stopping time', &
-                & 'Temperature', 'Crystallinity'
+                & 'Temperature', 'Crystallinity', &
+                & 'Gas density'
             do j=1, N_dust
-                write(100, '(I8, 4f20.10, 4f20.10, 2e20.10E3, 2e20.10E3, 2e20.10E3)') &
+                write(100, '(2X, I10, 4f20.10, 4f20.10, 2e20.10E3, 2e20.10E3, 2e20.10E3, e20.10E3)') &
                     & j, &
-                    & R_dust(j), theta_dust(j), vR_dust(j), vTheta_dust(j), &
-                    & x_dust(j), y_dust(j), vX_dust(j), vY_dust(j), &
+                    & R_dust(j)*phys_Dist/AU, theta_dust(j), &
+                    & vR_dust(j)*phys_dist/phys_time, vTheta_dust(j)*phys_dist/phys_time, &
+                    & x_dust(j)*phys_Dist/AU, y_dust(j)*phys_Dist/AU, &
+                    & vX_dust(j)*phys_dist/phys_time, vY_dust(j)*phys_dist/phys_time, &
                     & a_dust(j), m_dust(j), &
-                    & St(j), tstop(j), &
-                    & T_dust(j)*mu/R_gas*G*phys_mass/phys_dist, fc_dust(j)
+                    & St(j), tstop(j)*phys_time, &
+                    & T_dust(j)*mu/R_gas*G*phys_mass/phys_dist, fc_dust(j), &
+                    & loc_sigma_gas_dust(j)*phys_mass/phys_dist**2.d0
             end do
             close(100)
         end subroutine write_dust_output
@@ -485,8 +499,12 @@ module io
             end if
             if(do_frag==1) then
                 write(*,*) '        # You want to do fragmentation'
-                write(*,'(1X, A, f6.1, A)') '             v_frag = ', v_frag, '    cm/s'
-                write(*,'(1X, A, e9.3e2, A)') '             a_mono = ', a_mono, ' cm'
+                write(*,'(1X, A, f6.1, A)') '             v_frag     = ', v_frag, '    cm/s'
+                if(use_frag_ice==1) then
+                    write(*,'(1X, A, f6.1, A)') '             v_frag_ice = ', v_frag_ice, '    cm/s'
+                    write(*,'(1X, A, f6.1, A)') '             T_ice      = ', T_ice*mu/R_gas*G*phys_mass/phys_dist, '    K'
+                end if
+                write(*,'(1X, A, e9.3e2, A)') '             a_mono     = ', a_mono, ' cm'
             end if
             if(do_frag==1 .OR. do_growth==1) then
                 write(*,*)
