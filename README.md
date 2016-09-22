@@ -122,6 +122,29 @@ Whether the code should do fragmentation or not. 1: do fragmentation, 0: don't d
 The fragmentation velocity in cm/s. If the relative particle velocity is larger than v_frag the particles fragment. If not, they grow.
 
 
+    double precision :: use_frag_ice
+    
+Do you want to use a different fragmentation velocity for ice particles?
+0: no
+1: yes.
+
+    double precision :: v_frag_ice
+    
+Fragmentation velocity of ice particles in cm/s
+
+
+    double precision :: T_ice
+    
+Temperature in K below which the particle is considered as ice particle.
+
+
+    integer :: do_randomwalk
+
+Whether the particles should do a random walk due to turbulence.
+0: No.
+1: Yes.
+
+
     double precision :: Ea
     
 The activation energy of crystalization in units of the Boltzmann constant.
@@ -165,13 +188,6 @@ The initial particle size distribution.
 The monomer size in cm. When do_fragmentation=1 this is the minimum size a particle can have.
 
 
-    integer :: do_randomwalk
-
-Whether the particles should do a random walk due to turbulence.
-0: No.
-1: Yes.
-
-
     double precision :: rho_b
 
 The bulk density of the particles in g/cm^3.
@@ -197,20 +213,21 @@ THE OUTPUT FILES
 The Output files dust0.dat of the code are saved in the output_dir directory. The first line is a header and explains the different columns. The columns are:
 
     # Identifier of the particle:
-    # Radial distance
-    # Theta angle
-    # Radial velcity
-    # Azimuthal velocity
-    # X-coordinate
-    # Y-coordinate
-    # X-velocity
-    # Y-velocity
-    # Particle radius
-    # Particle mass
+    # Radial distance in AU
+    # Theta angle in rad
+    # Radial velcity in cm/s
+    # Azimuthal velocity in cm/s
+    # X-coordinate in AU
+    # Y-coordinate in AU
+    # X-velocity in cm/s
+    # Y-velocity in cm/s
+    # Particle radius in cm
+    # Particle mass in g
     # Stokes number
-    # Stopping time
-    # Temperature of the dust particle
+    # Stopping time in s
+    # Temperature of the dust particle in K
     # Crystallinity fraction of the dust particle
+    # Gas surface density at particle position in g/cm2
 
 
 
