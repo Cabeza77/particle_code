@@ -272,3 +272,8 @@ Plots the particle positions in the disk colorcoded with their Stokes number. Al
     plot_particles_crystallinity.py fargo_datadir output_dir
 
 Plots the particle positions in the disk colorcoded with their crystallinity fraction. Also shown are the positions of the planet and of the L4 and L5 Lagrange points.
+
+
+    plot_single_particle.py fargo_datadir output_dir particleID
+
+Plots a shitload o parameters of the particle with the identifier particleID.
