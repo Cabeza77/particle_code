@@ -277,3 +277,24 @@ Plots the particle positions in the disk colorcoded with their crystallinity fra
     plot_single_particle.py fargo_datadir output_dir particleID
 
 Plots a shitload o parameters of the particle with the identifier particleID.
+
+
+
+    plot_radmc3d_image.py image.out FWHM
+
+Plots a the RadMC3D intensity map of the RadMC3D output file image.out. In addition it plots the intensity map convoluted with a Gaussian of FWHM in AU. Set FWHM=0, when not needed for faster calculations.
+
+
+
+
+THE SCRIPTS
+--------------------
+
+    make_radmc3d_model.py fargo_datadir output_dir radmc3d_dir config.ini
+    
+Creates RadMC3D model files with given parameters in config.ini and saves them in radmc3d_dir. Opacities have to be generates separately.
+
+
+    make_radmc3d_opacities.py radmc3d_dir config.ini
+    
+Creates RadMC3D opacity files with given parameters in config.ini and saves them in radmc3d_dir.
