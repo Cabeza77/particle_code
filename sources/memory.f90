@@ -19,6 +19,8 @@ module memory
         allocate( vTheta_gas(2, N_theta, N_R) )
         allocate( vR_gas(2, N_theta, N_R) )
         allocate( T_gas(2, N_theta, N_R) )
+        allocate( aR_grav(2, N_theta, N_R) )
+        allocate( aTheta_grav(2, N_theta, N_R) )
         
         allocate( x_planet(0:N_t) )
         allocate( y_planet(0:N_t) )
@@ -54,6 +56,8 @@ module memory
         allocate( cur_vR_gas(N_theta, N_R) )
         allocate( cur_vTheta_gas(N_theta, N_R) )
         allocate( cur_T_gas(N_theta, N_R) )
+        allocate( cur_aR_grav(N_theta, N_R) )
+        allocate( cur_aTheta_grav(N_theta, N_R) )
         
     end subroutine allocate_memory
     
@@ -70,6 +74,8 @@ module memory
         deallocate( vTheta_gas )
         deallocate( vR_gas )
         deallocate( T_gas )
+        deallocate( aR_grav )
+        deallocate( aTheta_grav )
         
         deallocate( x_planet )
         deallocate( y_planet )
@@ -105,6 +111,8 @@ module memory
         deallocate( cur_vR_gas )
         deallocate( cur_vTheta_gas )
         deallocate( cur_T_gas )
+        deallocate( cur_aR_grav )
+        deallocate( cur_aTheta_grav )
         
     end subroutine deallocate_memory
 

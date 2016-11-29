@@ -56,7 +56,7 @@ module aerodynamics
         
         stokes_number = sqrt(pi/8.d0) * (3.d0*Kn+1.d0)**2.d0 / (9.d0*Kn**2.d0*fd+3.d0*Kn*kd) &
             & * a/(R*phys_dist) * rho_b/rho_g * vK/cs
-    
+        
     end function stokes_number
 
 end module aerodynamics

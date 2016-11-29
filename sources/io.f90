@@ -45,6 +45,7 @@ module io
             eps           = 1.d-2                   ! Dust-to-gas ratio
             mu            = 2.3                     ! Mean molecular weight of gas in proton masses
             smoothing     = 0.6d0                   ! Smooting length in units of scale height at planet position
+            use_sg        = 0                       ! Using self-gravity of the disk?
             
             Ea            = 5330.d0                 ! Activation energy for crystallization (Ea/kb) in units of K
             nu_vib        = 2.2d13                  ! Vibrational frequency in s

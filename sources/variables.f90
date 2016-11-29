@@ -40,6 +40,10 @@ module variables
     double precision, allocatable :: vTheta_gas(:, :, :)
     ! Gas temperature
     double precision, allocatable :: T_gas(:, :, :)
+    ! Radial gravitational acceleration
+    double precision, allocatable :: aR_grav(:, :, :)
+    ! Azimuthal gravitational acceleration
+    double precision, allocatable :: aTheta_grav(:, :, :)
     ! Adiabatic index
     double precision              :: adx
     
@@ -114,6 +118,8 @@ module variables
     double precision, allocatable :: cur_vR_gas(:, :)
     double precision, allocatable :: cur_vTheta_gas(:, :)
     double precision, allocatable :: cur_T_gas(:, :)
+    double precision, allocatable :: cur_aR_grav(:, :)
+    double precision, allocatable :: cur_aTheta_grav(:, :)
     double precision              :: cur_R_planet
     double precision              :: cur_theta_planet
     double precision              :: cur_X_planet
@@ -155,5 +161,7 @@ module variables
     double precision :: smoothing
     ! Dust-to-gas ratio
     double precision :: eps
+    ! Use self-gravity of the disk?
+    integer          :: use_sg
 
 end module variables

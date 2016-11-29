@@ -36,6 +36,8 @@ program particle_code
     
     ! Local gas parameters
     double precision :: loc_vR_gas, loc_vTheta_gas
+    ! Local gravitational acceleration parameter
+    double precision :: loc_aR_grav, loc_aTheta_grav
     
     ! Needed for the force calculations
     double precision :: d_pldu
@@ -133,6 +135,14 @@ program particle_code
     call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta', i_start, 'dat')), vTheta_gas(1, :, :))
     ! Read gas temperature
     call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', i_start, 'dat')), T_gas(1, :, :))
+    ! Read gravitational accelerations if needed
+    if(use_sg==1) then
+        call read_frame( trim(fargo_datadir)//trim(make_filename('aR', i_start, 'dat')), aR_grav(1, :, :))
+        call read_frame( trim(fargo_datadir)//trim(make_filename('aTheta', i_start, 'dat')), aTheta_grav(1, :, :))
+    else
+          aR_grav(1, :, :) = 0.d0
+      aTheta_grav(1, :, :) = 0.d0
+    end if
     
     ! Set initial positions of dust particles
     if(dens_dist==1) then
@@ -217,18 +227,29 @@ program particle_code
     call read_frame( trim(fargo_datadir)//trim(make_filename('gasvrad',        iframe+1, 'dat')),     vR_gas(2, :, :))
     call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta',      iframe+1, 'dat')), vTheta_gas(2, :, :))
     call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', iframe+1, 'dat')),      T_gas(2, :, :))
+    if(use_sg==1) then
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gassgaccr', i_start, 'dat')),         aR_grav(2, :, :))
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gassgacctheta', i_start, 'dat')), aTheta_grav(2, :, :))
+    else
+          aR_grav(2, :, :) = 0.d0
+      aTheta_grav(2, :, :) = 0.d0
+    end if
     
     TIME_LOOP: do
     
         ! The current gas parameters
-        cur_sigma_gas  = (  sigma_gas(2, :, :) -  sigma_gas(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
-                & * ( cur_time - time(iframe) ) +  sigma_gas(1, :, :)
-        cur_vR_gas     = (     vR_gas(2, :, :) -     vR_gas(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
-                & * ( cur_time - time(iframe) ) +     vR_gas(1, :, :)
-        cur_vTheta_gas = ( vTheta_gas(2, :, :) - vTheta_gas(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
-                & * ( cur_time - time(iframe) ) + vTheta_gas(1, :, :)
-        cur_T_gas      = (      T_gas(2, :, :) -      T_gas(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
-                & * ( cur_time - time(iframe) ) +      T_gas(1, :, :)
+        cur_sigma_gas   = (   sigma_gas(2, :, :) -   sigma_gas(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
+                 & * ( cur_time - time(iframe) ) +   sigma_gas(1, :, :)
+        cur_vR_gas      = (      vR_gas(2, :, :) -      vR_gas(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
+                 & * ( cur_time - time(iframe) ) +      vR_gas(1, :, :)
+        cur_vTheta_gas  = (  vTheta_gas(2, :, :) -  vTheta_gas(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
+                 & * ( cur_time - time(iframe) ) +  vTheta_gas(1, :, :)
+        cur_T_gas       = (       T_gas(2, :, :) -       T_gas(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
+                 & * ( cur_time - time(iframe) ) +       T_gas(1, :, :)
+        cur_aR_grav     = (     aR_grav(2, :, :) -      aR_grav(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
+                 & * ( cur_time - time(iframe) ) +     aR_grav(1, :, :)
+        cur_aTheta_grav = ( aTheta_grav(2, :, :) - aTheta_grav(1, :, :) ) / ( time(iframe+1)-time(iframe) ) &
+                 & * ( cur_time - time(iframe) ) + aTheta_grav(1, :, :)
         
         ! The current planet position in cartesion coordinates
         cur_X_planet = ( X_planet(iframe+1)-X_planet(iframe) ) / ( time(iframe+1)-time(iframe) ) &
@@ -280,10 +301,10 @@ program particle_code
             ! Limit growth/fragmentation timestep
             if(do_growth==1 .OR. do_frag==1) then
                 ! We need the stopping time
-                loc_sigma_gas_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R, cur_sigma_gas,  N_theta, N_R)
-                loc_vR_gas            = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vR_gas,     N_theta, N_R)
-                loc_vTheta_gas        = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vTheta_gas, N_theta, N_R)
-                T_dust(i)             = interp2d(theta_dust(i), R_dust(i), theta, R, cur_T_gas,      N_theta, N_R)
+                loc_sigma_gas_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R, cur_sigma_gas,   N_theta, N_R)
+                loc_vR_gas            = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vR_gas,      N_theta, N_R)
+                loc_vTheta_gas        = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vTheta_gas,  N_theta, N_R)
+                T_dust(i)             = interp2d(theta_dust(i), R_dust(i), theta, R, cur_T_gas,       N_theta, N_R)
                 dummy                 = sqrt( (vR_dust(i)-loc_vR_gas)**2.d0 + (vTheta_dust(i)-loc_vTheta_gas)**2.d0 )
                 St(i)                 = stokes_number( a_dust(i), loc_sigma_gas_dust(i), R_dust(i), dummy, T_dust(i) )
                 dadt(i)               = coagfrag_rate( R_dust(i), loc_sigma_gas_dust(i), St(i), T_dust(i) )
@@ -372,9 +393,11 @@ program particle_code
             end if
             
             ! Local gas parameters at particle position
-            loc_sigma_gas_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R, cur_sigma_gas,  N_theta, N_R)
-            loc_vR_gas            = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vR_gas,     N_theta, N_R)
-            loc_vTheta_gas        = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vTheta_gas, N_theta, N_R)
+            loc_sigma_gas_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R, cur_sigma_gas,   N_theta, N_R)
+            loc_vR_gas            = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vR_gas,      N_theta, N_R)
+            loc_vTheta_gas        = interp2d(theta_dust(i), R_dust(i), theta, R, cur_vTheta_gas,  N_theta, N_R)
+            loc_aR_grav           = interp2d(theta_dust(i), R_dust(i), theta, R, cur_aR_grav,     N_theta, N_R)
+            loc_aTheta_grav       = interp2d(theta_dust(i), R_dust(i), theta, R, cur_aTheta_grav, N_theta, N_R)
             
             ! Calculate particles Stokes number and stopping time
             dummy    = sqrt( (vR_dust(i)-loc_vR_gas)**2.d0 + (vTheta_dust(i)-loc_vTheta_gas)**2.d0 ) ! relative gas-dust velocity
@@ -396,6 +419,9 @@ program particle_code
             ! Convert forces to polar coordiantes
             Fr     =  Fx * cos( theta_dust(i) ) + Fy * sin( theta_dust(i) )
             Ftheta = -Fx * sin( theta_dust(i) ) + Fy * cos( theta_dust(i) )
+            ! Adding self gravity acceleration of the disk
+            Fr     = Fr     + loc_aR_grav
+            Ftheta = Ftheta + loc_aTheta_grav * R_dust(i)
                
             ! Updating the angular momentum
             L_dust(i) = L_dust(i) + dt * ( Ftheta + loc_vTheta_gas*R_dust(i)/tstop(i) )
@@ -500,14 +526,23 @@ program particle_code
             ! Exit loop when we're at the end of the simulation
             if(iframe+1 == i_stop) exit TIME_LOOP
             ! If not, load new frame
-             sigma_gas(1, :, :) =  sigma_gas(2, :, :)
-                vR_gas(1, :, :) =     vR_gas(2, :, :)
-            vTheta_gas(1, :, :) = vTheta_gas(2, :, :)
-                 T_gas(1, :, :) =      T_gas(2, :, :)
-            call read_frame( trim(fargo_datadir)//trim(make_filename('gasdens',   iframe+1, 'dat')),  sigma_gas(2, :, :))
-            call read_frame( trim(fargo_datadir)//trim(make_filename('gasvrad',   iframe+1, 'dat')),     vR_gas(2, :, :))
-            call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta', iframe+1, 'dat')), vTheta_gas(2, :, :))
-            call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', iframe+1, 'dat')), T_gas(2, :, :))
+              sigma_gas(1, :, :) =   sigma_gas(2, :, :)
+                 vR_gas(1, :, :) =      vR_gas(2, :, :)
+             vTheta_gas(1, :, :) =  vTheta_gas(2, :, :)
+                  T_gas(1, :, :) =       T_gas(2, :, :)
+                aR_grav(1, :, :) =     aR_grav(2, :, :)
+            aTheta_grav(1, :, :) = aTheta_grav(2, :, :)
+            call read_frame( trim(fargo_datadir)//trim(make_filename('gasdens',        iframe+1, 'dat')),  sigma_gas(2, :, :))
+            call read_frame( trim(fargo_datadir)//trim(make_filename('gasvrad',        iframe+1, 'dat')),     vR_gas(2, :, :))
+            call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta',      iframe+1, 'dat')), vTheta_gas(2, :, :))
+            call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', iframe+1, 'dat')),      T_gas(2, :, :))
+            if(use_sg==1) then
+                call read_frame( trim(fargo_datadir)//trim(make_filename('gassgaccr',     iframe+1, 'dat')),     aR_grav(2, :, :))
+                call read_frame( trim(fargo_datadir)//trim(make_filename('gassgacctheta', iframe+1, 'dat')), aTheta_grav(2, :, :))
+            else
+                  aR_grav(2, :, :) = 0.d0
+              aTheta_grav(2, :, :) = 0.d0
+            end if
             iframe = iframe + 1
         end if
         
