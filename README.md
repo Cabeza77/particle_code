@@ -107,6 +107,11 @@ The mean molecular weight of the gas in proton masses.
 The smoothing length in units of pressure scale heights at the distance of the planet. This is the minimal distance a particle can have to the planet for the calculation of the gravitational potential in order to avoid division by zero.
 
 
+    integer :: use_sg
+    
+If the self-gravity of the disk should be used. 1: yes, 0: no.
+
+
     integer :: do_growth
 
 Whether the code should do coagulation or not. 1: do coagulation, 0: don't do coagulation.
