@@ -94,6 +94,7 @@ dust_exists = np.zeros( N_t+1, dtype=bool)
 for i in range(N_t+1):
     if(os.path.isfile(dust_dir+'/dust'+repr(i)+'.dat')):
         dust_exists[i] = True
+i_last = np.argmin(dust_exists) - 1
 
 # Get number of dust particles and initialize dust array
 N_dust = 0
@@ -118,7 +119,7 @@ for it in range(N_t+1):
             except:
                 pass
             try:
-                dust[it, 1] = dummy[ 2]   # theta
+                dust[it, 1] = dummy[ 2]   # phi
             except:
                 pass
             try:
@@ -155,6 +156,12 @@ for it in range(N_t+1):
                 pass
     printline = "\r      {:4.1f} %".format(100.0*it/N_t)
     print(printline),
+# Modify phi to account for periodicity
+abs_dphi      = np.abs( np.diff( dust[:, 1] ) )
+abs_dphi_mean = abs_dphi[ np.isnan( abs_dphi ) == False ].mean()
+abs_dphi_std  = abs_dphi[ np.isnan( abs_dphi ) == False ].std()
+phi_mask      = np.hstack( [ abs_dphi > abs_dphi_mean + 3.*abs_dphi_std, [False] ] )
+masked_phi    = np.ma.MaskedArray( dust[:, 1], phi_mask )
 print('\n\r   ...done.')
 
 
@@ -199,13 +206,14 @@ ax11 = fig.add_subplot(gs02[:, :], projection='polar')
 linewidth = 1
 
 ax1.plot(time.to(u.kyr).value, dust[:, 0], lw=linewidth, color='blue')
-ax1.plot(time[0].to(u.kyr).value, dust[0, 0], 'o', color='#00FF00')
-ax1.plot(time[N_t].to(u.kyr).value, dust[-1, 0], 'o', color='#FF0000')
+ax1.plot(time[0].to(u.kyr).value, dust[0, 0], 'o', markersize=8, color='#00FF00')
+ax1.plot(time[i_last].to(u.kyr).value, dust[i_last, 0], 'o', markersize=8, color='#FF0000')
 ax1.set_ylabel( r'$R\ \mathrm{[AU]}$' )
 ax1.grid(b=True)
 
 ax2.plot(time.to(u.kyr).value, (dust[:, 2]*u.cm/u.s).to(u.au/u.kyr).value, lw=linewidth, color='blue')
 ax2.set_ylabel( r'$v_\mathrm{R}\ \mathrm{[AU/kyr]}$' )
+ax2.set_ylim(-10., 10.)
 ax2.grid(b=True)
 
 ax3.semilogy(time.to(u.kyr).value, dust[:, 6], lw=linewidth, color='purple')
@@ -221,17 +229,17 @@ ax5.set_ylabel( r'$a\ \mathrm{[cm]}$' )
 ax5.set_xlabel( r'$t\ \mathrm{[kyr]}$' )
 ax5.grid(b=True)
 
-ax6.plot(time.to(u.kyr).value, dust[:, 1], lw=linewidth, color='blue')
-ax6.plot(time[0].to(u.kyr).value, dust[0, 1], 'o', color='#00FF00')
-ax6.plot(time[N_t].to(u.kyr).value, dust[-1, 1], 'o', color='#FF0000')
-ax6.set_ylabel( r'$\theta\ \mathrm{[rad]}$' )
+#ax6.plot(time.to(u.kyr).value, dust[:, 1], lw=linewidth, color='blue')
+ax6.plot(time.to(u.kyr).value, masked_phi, lw=linewidth, color='blue')
+ax6.plot(time[0].to(u.kyr).value, dust[0, 1], 'o', markersize=8, color='#00FF00')
+ax6.plot(time[i_last].to(u.kyr).value, dust[i_last, 1], 'o', markersize=8, color='#FF0000')
+ax6.set_ylabel( r'$\varphi\ \mathrm{[rad]}$' )
 ax6.set_ylim(0., 2.*const.pi)
 ax6.grid(b=True)
 
-#ax7.plot(time.to(u.yr).value, dust[:, 3], lw=2, color='blue')
 ax7.plot(time.to(u.kyr).value, dust[:, 3]/np.sqrt( aconst.G * phys_mass / (dust[:, 0] * phys_dist) ).cgs.value, lw=linewidth, color='blue')
-ax7.hlines(1., ax7.get_xlim()[0], ax7.get_xlim()[1], zorder=3)
-ax7.set_ylabel( r'$v_\theta\ [v_\mathrm{K}]$' )
+ax7.set_ylabel( r'$v_\varphi\ [v_\mathrm{K}]$' )
+ax7.set_ylim(0.95, 1.05)
 ax7.grid(b=True)
 
 ax8.plot(time.to(u.kyr).value, dust[:, 8], lw=linewidth, color='red')
@@ -249,8 +257,8 @@ ax10.set_xlabel( r'$t\ \mathrm{[kyr]}$' )
 ax10.grid(b=True)
 
 ax11.plot(dust[:, 1], dust[:, 0])
-ax11.plot(dust[0, 1], dust[0, 0], 'o', color='#00FF00')
-ax11.plot(dust[-1, 1], dust[-1, 0], 'o', color='#FF0000')
+ax11.plot(dust[0, 1], dust[0, 0], 'o', markersize=8, color='#00FF00')
+ax11.plot(dust[i_last, 1], dust[i_last, 0], 'o', markersize=8, color='#FF0000')
 ax11.set_rlim( -used_rad[0].to(u.au).value, used_rad[-1].to(u.au).value )
 ax11.grid(b=True)
 
