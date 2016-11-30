@@ -137,8 +137,8 @@ program particle_code
     call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', i_start, 'dat')), T_gas(1, :, :))
     ! Read gravitational accelerations if needed
     if(use_sg==1) then
-        call read_frame( trim(fargo_datadir)//trim(make_filename('aR', i_start, 'dat')), aR_grav(1, :, :))
-        call read_frame( trim(fargo_datadir)//trim(make_filename('aTheta', i_start, 'dat')), aTheta_grav(1, :, :))
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gassgaccr',     i_start, 'dat')),     aR_grav(1, :, :))
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gassgacctheta', i_start, 'dat')), aTheta_grav(1, :, :))
     else
           aR_grav(1, :, :) = 0.d0
       aTheta_grav(1, :, :) = 0.d0
@@ -420,8 +420,8 @@ program particle_code
             Fr     =  Fx * cos( theta_dust(i) ) + Fy * sin( theta_dust(i) )
             Ftheta = -Fx * sin( theta_dust(i) ) + Fy * cos( theta_dust(i) )
             ! Adding self gravity acceleration of the disk
-            Fr     = Fr     + loc_aR_grav
-            Ftheta = Ftheta + loc_aTheta_grav * R_dust(i)
+            Fr     =  Fr     + loc_aR_grav
+            Ftheta = (Ftheta + loc_aTheta_grav) * R_dust(i)
                
             ! Updating the angular momentum
             L_dust(i) = L_dust(i) + dt * ( Ftheta + loc_vTheta_gas*R_dust(i)/tstop(i) )
