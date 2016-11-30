@@ -213,6 +213,7 @@ ax1.grid(b=True)
 
 ax2.plot(time.to(u.kyr).value, (dust[:, 2]*u.cm/u.s).to(u.au/u.kyr).value, lw=linewidth, color='blue')
 ax2.set_ylabel( r'$v_\mathrm{R}\ \mathrm{[AU/kyr]}$' )
+range_max = np.amax( np.abs( (dust[:, 2][np.isnan( dust[:, 2] ) == False]*u.cm/u.s).to(u.au/u.kyr).value ) ) * 1.5
 ax2.set_ylim(-10., 10.)
 ax2.grid(b=True)
 
@@ -239,7 +240,8 @@ ax6.grid(b=True)
 
 ax7.plot(time.to(u.kyr).value, dust[:, 3]/np.sqrt( aconst.G * phys_mass / (dust[:, 0] * phys_dist) ).cgs.value, lw=linewidth, color='blue')
 ax7.set_ylabel( r'$v_\varphi\ [v_\mathrm{K}]$' )
-ax7.set_ylim(0.95, 1.05)
+range_max = np.amax( np.abs( 1. - dust[:, 3][np.isnan( dust[:, 3] ) == False]/np.sqrt( aconst.G * phys_mass / (dust[:, 0][np.isnan( dust[:, 3] ) == False] * phys_dist) ).cgs.value ) ) * 1.5
+ax7.set_ylim(1.-range_max, 1.+range_max)
 ax7.grid(b=True)
 
 ax8.plot(time.to(u.kyr).value, dust[:, 8], lw=linewidth, color='red')
