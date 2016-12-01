@@ -37,6 +37,14 @@ If you compiled in parallel mode use
     
 to run the code with N threads. If you don't give the number of threads, N=1 will be used.
 
+A simulation can be restartet by using
+
+        ./particle_code input_file restart i
+
+where i is the number of the snapshot from which the simulations should be restarted.
+
+setthreads and restart can be combined with each other.
+
 
 
 WARNINGS
