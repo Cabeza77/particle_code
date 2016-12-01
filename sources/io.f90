@@ -3,7 +3,7 @@ module io
     implicit none
     
     public  :: make_filename, read_inputs, read_data, read_frame, write_dust_output, write_stop_message, write_warning_message, &
-        & write_welcome, write_information, write_losses, write_invalid_message
+        & write_welcome, write_information, write_losses, write_invalid_message, read_dust_frame
     private :: check_inputs, read_dims_file, read_namelist, read_used_rad
     
     contains
@@ -218,6 +218,48 @@ module io
 
 ! ####################
 
+        subroutine read_dust_frame()
+        
+            use variables
+            use constants
+            
+            implicit none
+        
+            integer :: ierror
+            integer :: i
+            
+            integer :: idummy
+            double precision :: dummy
+            
+            open(100, file=trim(output_dir)//trim(make_filename('dust', i_restart, 'dat')), delim='apostrophe', status='old', &
+                & action='read', iostat=ierror)
+            
+                ! Skip header line
+                read(100, *)
+            
+                do i=1, N_dust
+                    read(100, *) idummy, R_dust(i), theta_dust(i), vR_dust(i), vTheta_dust(i), X_dust(i), Y_dust(i), vX_dust(i), &
+                        & vY_dust(i), a_dust(i), m_dust(i), St(i), tstop(i), T_dust(i), fc_dust(i), loc_sigma_gas_dust(i)
+                    
+                    ! Convert to code units
+                    R_dust(i)             = R_dust(i) * AU / phys_dist
+                    vR_dust(i)            = vR_dust(i) * phys_time / phys_dist
+                    vTheta_dust(i)        = vTheta_dust(i) * phys_time / phys_dist
+                    X_dust(i)             = X_dust(i) * AU / phys_dist
+                    Y_dust(i)             = Y_dust(i) * AU / phys_dist
+                    vX_dust(i)            = vX_dust(i) * phys_time / phys_dist
+                    vY_dust(i)            = vY_dust(i) * phys_time / phys_dist
+                    tstop(i)              = tstop(i) / phys_time
+                    T_dust(i)             = T_dust(i) * R_gas/mu * phys_dist/phys_mass / G
+                    loc_sigma_gas_dust(i) = loc_sigma_gas_dust(i) * phys_dist**2.d0 / phys_mass
+                end do
+            
+            close(100)
+        
+        end subroutine read_dust_frame
+
+! ####################
+
         subroutine read_frame(filename, frame)
         
             use variables
@@ -424,9 +466,9 @@ module io
             do j=1, N_dust
                 write(100, '(2X, I10, 4f20.10, 4f20.10, 2e20.10E3, 2e20.10E3, 2e20.10E3, e20.10E3)') &
                     & j, &
-                    & R_dust(j)*phys_Dist/AU, theta_dust(j), &
+                    & R_dust(j)*phys_dist/AU, theta_dust(j), &
                     & vR_dust(j)*phys_dist/phys_time, vTheta_dust(j)*phys_dist/phys_time, &
-                    & x_dust(j)*phys_Dist/AU, y_dust(j)*phys_Dist/AU, &
+                    & x_dust(j)*phys_dist/AU, y_dust(j)*phys_dist/AU, &
                     & vX_dust(j)*phys_dist/phys_time, vY_dust(j)*phys_dist/phys_time, &
                     & a_dust(j), m_dust(j), &
                     & St(j), tstop(j)*phys_time, &
@@ -484,6 +526,11 @@ module io
             write(*,'(1X, A, I0)') '        # azimuthal grid points:  ', N_theta
             write(*,'(1X, A, I0)') '        # first snaphot:          ', i_start
             write(*,'(1X, A, I0)') '        # last snaphot:           ', i_stop
+            if(do_restart==1) then
+                write(*,*)
+                write(*,*) '        ¡ This is a restarted simulation !'
+                write(*,'(1X, A, I0)') '        # restart snaphot:        ', i_restart
+            end if
             write(*,*)
             write(*,'(1X, A, I0)') '        # dust particles:         ', N_dust
             if(a_dist_log==1) then

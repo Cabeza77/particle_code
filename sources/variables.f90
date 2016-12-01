@@ -13,6 +13,10 @@ module variables
     character(len=128) :: fargo_datadir
     ! Output directory
     character(len=128) :: output_dir
+    ! If the simulation is a restart
+    integer :: do_restart
+    ! Snapshot of restart
+    integer :: i_restart
     
 ! Grid data
 

@@ -29,7 +29,7 @@ program particle_code
     
     ! Dummies
     double precision :: dummy, dummy2, dr_dum, dt_dum
-    !$ character(32)    :: dumstr
+    character(32)    :: dumstr
     
     ! Chunksize for loops in multithreading
     !$ integer :: chunksize
@@ -56,12 +56,30 @@ program particle_code
     
     call write_welcome()
     
+    ! Check for command line arguments and read them
     num_args = command_argument_count()
     if(num_args .LT. 1) then
         call write_stop_message('You have to give the input file as command line argument')
         stop
     end if
-    call get_command_argument(1, input_file)
+    call get_command_argument(1, input_file) ! First command line argument HAS to be the input file
+    ! Check if restart is required
+    do_restart = 0
+    i_restart  = 0
+    if(num_args .GT. 1 ) then
+        do i=1, num_args
+            call get_command_argument(i, dumstr)
+            if(trim(dumstr)=='restart') then
+                call get_command_argument(i+1, dumstr)
+                read(dumstr,'(I6)') i_restart
+                do_restart = 1
+                if(i_restart .LT. 0) then
+                    call write_stop_message('The restart snapshot is negative')
+                    stop
+                end if
+            end if
+        end do
+    end if
     
     ! Start timer
     call system_clock( time_start, time_rate )
@@ -94,12 +112,14 @@ program particle_code
     
     !!$ Defaults number of threads for parallel computing. 1 = no parallelization
     !$ setthreads=1
-    !$ if(num_args .EQ. 3 ) then
-    !$     call get_command_argument(2, dumstr)
-    !$     if(trim(dumstr)=='setthreads') then
-    !$         call get_command_argument(3, dumstr)
-    !$         read(dumstr,'(I6)') setthreads
-    !$     end if
+    !$ if(num_args .GT. 1 ) then
+    !$     do i=1, num_args
+    !$         call get_command_argument(i, dumstr)
+    !$         if(trim(dumstr)=='setthreads') then
+    !$             call get_command_argument(i+1, dumstr)
+    !$             read(dumstr,'(I6)') setthreads
+    !$         end if
+    !$     end do
     !$ end if
     !$ setthreads = max(setthreads, 1)
     !$ write(*,'(1X, A)') achar(27)//'[95mYou are using the parallel version of'
@@ -114,96 +134,130 @@ program particle_code
 
 ! ##### SET INITIAL CONDITIONS #####################################################################################################    
     write(*,*) '# Initializing...'
+    
+    ! If restart required, load the desired snapshot
+    if(do_restart==1) then
+    
+        if(i_restart .GE. i_stop) then
+            call write_stop_message('The restart snapshot is larger or equal i_stop.')
+            stop
+        end if
+    
+        ! Read the dust fram
+        call read_dust_frame()
+        
+        ! Read the fargo frames
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gasdens',      i_restart, 'dat')),  sigma_gas(1, :, :))
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gasvrad',      i_restart, 'dat')),     vR_gas(1, :, :))
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta',    i_restart, 'dat')), vTheta_gas(1, :, :))
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', i_start, 'dat')),      T_gas(1, :, :))
+        if(use_sg==1) then
+            call read_frame( trim(fargo_datadir)//trim(make_filename('gassgaccr',     i_restart, 'dat')),     aR_grav(1, :, :))
+            call read_frame( trim(fargo_datadir)//trim(make_filename('gassgacctheta', i_restart, 'dat')), aTheta_grav(1, :, :))
+        else
+              aR_grav(1, :, :) = 0.d0
+          aTheta_grav(1, :, :) = 0.d0
+        end if
+    
+    ! Or simply start a new simulation
+    else
 
-    ! Set initial sizes and masses of dust particles
-    if(a_dist_log==1) then
+        ! Set initial sizes and masses of dust particles
+        if(a_dist_log==1) then
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i, dummy) SCHEDULE(GUIDED, chunksize)
+            do i=1, N_dust
+                dummy = ran2(iseed)
+                a_dust(i) = a_max**(dummy) / a_min**(dummy-1.d0)
+            end do
+!$OMP END PARALLEL DO
+        else
+            a_dust(:) = a_max
+        end if
+        m_dust = 4.d0/3.d0 * pi * rho_b * a_dust**3.
+    
+        ! Read first gas density frame
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gasdens', i_start, 'dat')), sigma_gas(1, :, :))
+        ! Read first gas velocity frames
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gasvrad', i_start, 'dat')), vR_gas(1, :, :))
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta', i_start, 'dat')), vTheta_gas(1, :, :))
+        ! Read gas temperature
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', i_start, 'dat')), T_gas(1, :, :))
+        ! Read gravitational accelerations if needed
+        if(use_sg==1) then
+            call read_frame( trim(fargo_datadir)//trim(make_filename('gassgaccr',     i_start, 'dat')),     aR_grav(1, :, :))
+            call read_frame( trim(fargo_datadir)//trim(make_filename('gassgacctheta', i_start, 'dat')), aTheta_grav(1, :, :))
+        else
+              aR_grav(1, :, :) = 0.d0
+          aTheta_grav(1, :, :) = 0.d0
+        end if
+    
+        ! Set initial positions of dust particles
+        if(dens_dist==1) then
+            write(*,*) achar(27)//'[36m        I''m setting the initial particle distribution with'
+            write(*,*) '        the acceptance/rejection method. This may take'
+            write(*,*) '        several minutes.'//achar(27)//'[0m'
+        end if
 !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i, dummy) SCHEDULE(GUIDED, chunksize)
         do i=1, N_dust
-            dummy = ran2(iseed)
-            a_dust(i) = a_max**(dummy) / a_min**(dummy-1.d0)
+            if(dens_dist==2) then
+                R_dust(i)     = R_planet(i_start) - R_ring/2.d0 + ran2(iseed) * R_ring * 2.d0
+                theta_dust(i) = 2.d0 * pi * ran2(iseed)
+            else if(dens_dist==1) then
+                do
+                    R_dust(i)     = ran2(iseed) * ( R(N_R)-R(1) ) + R(1)
+                    theta_dust(i) = 2.d0 * pi * ran2(iseed)
+                    dummy         = interp2d(theta_dust(i), R_dust(i), &
+                                        & theta, R, sigma_gas(1, :, :)/maxval(sigma_gas(1, :, :)), N_theta, N_R)
+                    if(ran2(iseed) .LE. dummy) exit
+                end do
+            else
+                R_dust(i)     = (R_int(N_R+1)-R_int(1))*ran2(iseed) + R_int(1)
+                theta_dust(i) = 2.d0 * pi * ran2(iseed)
+            end if
         end do
 !$OMP END PARALLEL DO
-    else
-        a_dust(:) = a_max
-    end if
-    m_dust = 4.d0/3.d0 * pi * rho_b * a_dust**3.
     
-    ! Read first gas density frame
-    call read_frame( trim(fargo_datadir)//trim(make_filename('gasdens', i_start, 'dat')), sigma_gas(1, :, :))
-    ! Read first gas velocity frames
-    call read_frame( trim(fargo_datadir)//trim(make_filename('gasvrad', i_start, 'dat')), vR_gas(1, :, :))
-    call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta', i_start, 'dat')), vTheta_gas(1, :, :))
-    ! Read gas temperature
-    call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', i_start, 'dat')), T_gas(1, :, :))
-    ! Read gravitational accelerations if needed
-    if(use_sg==1) then
-        call read_frame( trim(fargo_datadir)//trim(make_filename('gassgaccr',     i_start, 'dat')),     aR_grav(1, :, :))
-        call read_frame( trim(fargo_datadir)//trim(make_filename('gassgacctheta', i_start, 'dat')), aTheta_grav(1, :, :))
-    else
-          aR_grav(1, :, :) = 0.d0
-      aTheta_grav(1, :, :) = 0.d0
-    end if
-    
-    ! Set initial positions of dust particles
-    if(dens_dist==1) then
-        write(*,*) achar(27)//'[36m        I''m setting the initial particle distribution with'
-        write(*,*) '        the acceptance/rejection method. This may take'
-        write(*,*) '        several minutes.'//achar(27)//'[0m'
-    end if
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i, dummy) SCHEDULE(GUIDED, chunksize)
-    do i=1, N_dust
-        if(dens_dist==2) then
-            R_dust(i)     = R_planet(i_start) - R_ring/2.d0 + ran2(iseed) * R_ring * 2.d0
-            theta_dust(i) = 2.d0 * pi * ran2(iseed)
-        else if(dens_dist==1) then
-            do
-                R_dust(i)     = ran2(iseed) * ( R(N_R)-R(1) ) + R(1)
-                theta_dust(i) = 2.d0 * pi * ran2(iseed)
-                dummy         = interp2d(theta_dust(i), R_dust(i), &
-                                    & theta, R, sigma_gas(1, :, :)/maxval(sigma_gas(1, :, :)), N_theta, N_R)
-                if(ran2(iseed) .LE. dummy) exit
-            end do
-        else
-            R_dust(i)     = (R_int(N_R+1)-R_int(1))*ran2(iseed) + R_int(1)
-            theta_dust(i) = 2.d0 * pi * ran2(iseed)
-        end if
-    end do
-!$OMP END PARALLEL DO
-    
-    ! In carteesian coordinates
-    X_dust = R_dust * cos( theta_dust )
-    Y_dust = R_dust * sin( theta_dust )
+        ! In carteesian coordinates
+        X_dust = R_dust * cos( theta_dust )
+        Y_dust = R_dust * sin( theta_dust )
 
-    ! Initialize crystallinity fraction
-    fc_dust = 0.d0
+        ! Initialize crystallinity fraction
+        fc_dust = 0.d0
 
-    ! Initiate the temperature, calculate Stokes number and stopping time of particles
-    ! and with them the initial particle velocities
+        ! Initiate the temperature, calculate Stokes number and stopping time of particles
+        ! and with them the initial particle velocities
 !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i, dummy, dummy2) SCHEDULE(GUIDED, chunksize)
-    do i=1, N_dust
-        T_dust(i)             = interp2d(theta_dust(i), R_dust(i), theta, R,      T_gas(1, :, :), N_theta, N_R)
-        dummy                 = interp2d(theta_dust(i), R_dust(i), theta, R,     vR_gas(1, :, :), N_theta, N_R)
-        dummy2                = interp2d(theta_dust(i), R_dust(i), theta, R, vtheta_gas(1, :, :), N_theta, N_R)
-        dummy2                = sqrt( (vR_dust(i)-dummy)**2.d0 + (vTheta_dust(i)-dummy2)**2.d0 ) ! relative gas-dust velocity
-        loc_sigma_gas_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R,  sigma_gas(1, :, :), N_theta, N_R)
-        St(i)                 = stokes_number( a_dust(i), loc_sigma_gas_dust(i), R_dust(i), dummy2, T_dust(i) )
-        tstop(i)              = St(i) * sqrt( R_dust(i)**3.d0 )
-        
-        if(St(i) .LT. 1.d0) then ! Fully coupled to gas
-            vR_dust(i)     = interp2d(theta_dust(i), R_dust(i), theta, R, vR_gas(1, :, :),     N_theta, N_R)
-            vTheta_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R, vTheta_gas(1, :, :), N_theta, N_R)
-        else ! Keplerian orbit
-            vR_dust(i)     = 0.d0
-            vTheta_dust(i) = 1./sqrt( R_dust(i) )
-        end if
-    end do
-!$OMP END PARALLEL DO
+        do i=1, N_dust
+            T_dust(i)             = interp2d(theta_dust(i), R_dust(i), theta, R,      T_gas(1, :, :), N_theta, N_R)
+            dummy                 = interp2d(theta_dust(i), R_dust(i), theta, R,     vR_gas(1, :, :), N_theta, N_R)
+            dummy2                = interp2d(theta_dust(i), R_dust(i), theta, R, vtheta_gas(1, :, :), N_theta, N_R)
+            dummy2                = sqrt( (vR_dust(i)-dummy)**2.d0 + (vTheta_dust(i)-dummy2)**2.d0 ) ! relative gas-dust velocity
+            loc_sigma_gas_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R,  sigma_gas(1, :, :), N_theta, N_R)
+            St(i)                 = stokes_number( a_dust(i), loc_sigma_gas_dust(i), R_dust(i), dummy2, T_dust(i) )
+            tstop(i)              = St(i) * sqrt( R_dust(i)**3.d0 )
 
+            if(St(i) .LT. 1.d0) then ! Fully coupled to gas
+                vR_dust(i)     = interp2d(theta_dust(i), R_dust(i), theta, R, vR_gas(1, :, :),     N_theta, N_R)
+                vTheta_dust(i) = interp2d(theta_dust(i), R_dust(i), theta, R, vTheta_gas(1, :, :), N_theta, N_R)
+            else ! Keplerian orbit
+                vR_dust(i)     = 0.d0
+                vTheta_dust(i) = 1./sqrt( R_dust(i) )
+            end if
+        end do
+!$OMP END PARALLEL DO
+        ! X- and Y-component of dust velocity
+        vX_dust = vR_dust * cos( theta_dust ) - vTheta_dust * sin( theta_dust ) 
+        vY_dust = vR_dust * sin( theta_dust ) + vTheta_dust * cos( theta_dust )
+    
+    end if ! Setting the initial conditions
+    
     ! Specific angular momentum of the dust
     L_dust = R_dust * vTheta_dust
-    ! X- and Y-component of dust velocity
-    vX_dust = vR_dust * cos( theta_dust ) - vTheta_dust * sin( theta_dust ) 
-    vY_dust = vR_dust * sin( theta_dust ) + vTheta_dust * cos( theta_dust )
+    
+    ! Setting i_start
+    if(do_restart==1) then
+        i_start = i_restart
+    end if
     
     write(*,*) '     ...done.'
     write(*,*)
@@ -228,8 +282,8 @@ program particle_code
     call read_frame( trim(fargo_datadir)//trim(make_filename('gasvtheta',      iframe+1, 'dat')), vTheta_gas(2, :, :))
     call read_frame( trim(fargo_datadir)//trim(make_filename('gasTemperature', iframe+1, 'dat')),      T_gas(2, :, :))
     if(use_sg==1) then
-        call read_frame( trim(fargo_datadir)//trim(make_filename('gassgaccr', i_start, 'dat')),         aR_grav(2, :, :))
-        call read_frame( trim(fargo_datadir)//trim(make_filename('gassgacctheta', i_start, 'dat')), aTheta_grav(2, :, :))
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gassgaccr', iframe+1, 'dat')),         aR_grav(2, :, :))
+        call read_frame( trim(fargo_datadir)//trim(make_filename('gassgacctheta', iframe+1, 'dat')), aTheta_grav(2, :, :))
     else
           aR_grav(2, :, :) = 0.d0
       aTheta_grav(2, :, :) = 0.d0
@@ -307,6 +361,7 @@ program particle_code
                 T_dust(i)             = interp2d(theta_dust(i), R_dust(i), theta, R, cur_T_gas,       N_theta, N_R)
                 dummy                 = sqrt( (vR_dust(i)-loc_vR_gas)**2.d0 + (vTheta_dust(i)-loc_vTheta_gas)**2.d0 )
                 St(i)                 = stokes_number( a_dust(i), loc_sigma_gas_dust(i), R_dust(i), dummy, T_dust(i) )
+
                 dadt(i)               = coagfrag_rate( R_dust(i), loc_sigma_gas_dust(i), St(i), T_dust(i) )
                 ! If particle fragments and already has minimum size, ignore to speed up programm
                 if(dadt(i) .LT. 0.d0 .AND. a_dust(i)==a_mono) dadt(i) = 0.d0
