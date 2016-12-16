@@ -9,6 +9,7 @@ import numpy as np
 import os
 import scipy.constants as const
 import sys
+import matplotlib.pyplot as plt
 
 
 
@@ -206,6 +207,7 @@ for idust in range(N_dust):
     ia     = np.argmax( aInt > a_dust ) - 1
     sigmaDustRadmc3d[ia, :, :] = sigmaDustRadmc3d[ia, :, :] + m_dust * kernel(R)
 
+
 # Average azimuthal grid cell size
 phiAverage = np.average( phiInt[1:].cgs.value - phiInt[:-1].cgs.value ) * u.rad
 # Calculating the grid cell sizes of the 2D and the 3D grid.
@@ -325,6 +327,8 @@ f.write( os.linesep )
 f.write( 'scattering_mode_max      = {:d}'.format( scat_mode_max ) )
 f.write( os.linesep )
 f.write( 'istar_sphere             = 1' )
+f.write( os.linesep )
+f.write( 'modified_random_walk     = 1' )
 f.write( os.linesep )
 f.close()
 
