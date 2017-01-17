@@ -39,7 +39,7 @@ to run the code with N threads. If you don't give the number of threads, N=1 wil
 
 A simulation can be restartet by using
 
-        ./particle_code input_file restart i
+    ./particle_code input_file restart i
 
 where i is the number of the snapshot from which the simulations should be restarted.
 
